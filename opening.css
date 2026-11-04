@@ -1,0 +1,12 @@
+/* Mobile-first opening card, below the hero actions and before the collage. */
+.next-opening{margin:28px 0 22px;padding:20px 18px;background:var(--paper);border:2px solid #dfb39e;border-radius:14px 28px 14px 24px;box-shadow:4px 5px 0 #efd1c5;max-width:510px;display:grid;grid-template-columns:minmax(0,1fr) 106px;gap:10px 16px;align-items:center}
+.next-opening h2{font-family:var(--serif);font-weight:900;font-size:1.36rem;line-height:1.2;letter-spacing:-.025em;color:var(--cherry);margin:0 0 12px}
+.next-opening .opening-date{display:block;font-weight:900;font-size:1rem;line-height:1.4;color:var(--cherry)}
+.next-opening .opening-hours{display:block;color:var(--olive);font-size:.87rem;line-height:1.5;margin-top:4px}
+.opening-sign{margin:0;text-align:center;align-self:start}.opening-sign img{display:block;width:106px;height:auto;transform:rotate(4deg)}
+.opening-sign figcaption{font-size:.65rem;line-height:1.45;color:var(--muted);margin:6px 0 0}
+.next-opening .opening-foot{grid-column:1/-1}.hero .next-opening p{font-size:.8rem;line-height:1.6;margin:0 0 8px;max-width:none}
+.next-opening .opening-link{display:inline-flex;align-items:center;min-height:44px;color:var(--cherry);font-size:.85rem;font-weight:900;text-underline-offset:4px}
+.opening-pending{display:block;font-size:.73rem;color:var(--muted);line-height:1.5;margin-top:3px}
+@media(max-width:350px){.next-opening{grid-template-columns:minmax(0,1fr) 88px;padding:17px 14px;gap:10px}.opening-sign img{width:88px}.next-opening h2{font-size:1.2rem}.opening-sign figcaption{font-size:.62rem}}
+@media(min-width:701px){.next-opening{padding:22px;grid-template-columns:minmax(0,1fr) 124px}.opening-sign img{width:124px}.next-opening h2{font-size:1.5rem}}

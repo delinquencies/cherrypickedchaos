@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <title>A little country detour</title>
+  <desc>A stylized church, rolling fields and a winding road. Decorative illustration, not a depiction of a particular church.</desc>
+  <rect width="480" height="360" rx="20" fill="#F8E4CC"/>
+  <path d="M0 0h480v220c-90-35-148 22-240-7S82 177 0 217Z" fill="#F8D5D7"/>
+  <circle cx="378" cy="76" r="37" fill="#E8AC67"/>
+  <path d="M33 85c8-17 22-18 32-5 10-23 36-21 43 0 17-6 30 1 33 13H33Zm243 43c6-14 18-16 27-4 10-22 31-19 37-2 16-4 27 1 30 13h-94Z" fill="#FFF9EE"/>
+  <path d="M0 231c75-41 144-41 231-9s176 6 249-31v169H0Z" fill="#C7CD96"/>
+  <path d="M0 286c106-62 191-32 279-4s141 18 201-10v88H0Z" fill="#788247"/>
+  <path d="M172 360c94-63 154-49 176-77 14-17-15-32-57-36 70 0 100 24 73 48-31 28-67 35-77 65Z" fill="#FFF0D8"/>
+  <g stroke="#753B39" stroke-width="5" stroke-linejoin="round">
+    <path d="M110 230V143l87-54 89 54v87Z" fill="#FFF9EE"/>
+    <path d="m97 146 100-65 102 65-13 12-89-56-87 56Z" fill="#A52542"/>
+    <path d="M147 233V109l45-21 44 21v124Z" fill="#FCEBDD"/>
+    <path d="M162 110V71h59v39Z" fill="#FFF9EE"/>
+    <path d="m155 74 37-61 37 61Z" fill="#970A2B"/>
+    <path d="M192 14V3m-8 5h16" stroke-width="4"/>
+    <path d="M178 96V83a14 14 0 0 1 28 0v13Z" fill="#788247"/>
+    <path d="M173 233v-39a19 19 0 0 1 38 0v39Z" fill="#A52542"/>
+    <path d="M123 208v-27a9 9 0 0 1 18 0v27Zm119 0v-27a9 9 0 0 1 18 0v27Z" fill="#E8AC67" stroke-width="3"/>
+    <circle cx="192" cy="141" r="18" fill="#F5B9C7" stroke-width="4"/>
+    <path d="M192 123v36m-18-18h36m-31-13 26 26m-26 0 26-26" stroke-width="2"/>
+    <path d="M192 183v50" stroke-width="2"/>
+  </g>
+  <path d="M63 256v-61m-12 22 12 13 17-22m324 32v-79m-17 29 17 17 18-25" stroke="#5B6230" stroke-width="6" stroke-linecap="round"/>
+  <g fill="#657135"><ellipse cx="51" cy="194" rx="25" ry="35"/><ellipse cx="77" cy="180" rx="23" ry="38"/><ellipse cx="394" cy="154" rx="29" ry="38"/><ellipse cx="423" cy="168" rx="21" ry="31"/></g>
+  <path d="M0 329c85-29 116-18 155-10M317 337c71 16 105 6 163-9" stroke="#DCE0AC" stroke-width="3" stroke-linecap="round"/>
+  <g fill="#F8D5D7"><circle cx="48" cy="283" r="5"/><circle cx="69" cy="295" r="4"/><circle cx="413" cy="283" r="5"/><circle cx="439" cy="302" r="4"/></g>
+</svg>

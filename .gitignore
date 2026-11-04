@@ -1,0 +1,13 @@
+# Local preview evidence and machine-generated files
+/audit/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local dependencies, credentials, and editor state
+node_modules/
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/

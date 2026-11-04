@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360" fill="none">
+  <title>Objects with stories</title>
+  <rect width="480" height="360" rx="25" fill="#F9E9D3"/>
+  <path d="M0 280c115-28 247-25 480 2v78H0Z" fill="#E9C6C8"/>
+  <ellipse cx="246" cy="302" rx="190" ry="18" fill="#D6ACAF"/>
+  <g stroke="#753B39" stroke-width="5" stroke-linejoin="round">
+    <path d="M78 189V119c0-31 26-49 56-49s56 18 56 49v70Z" fill="#788247"/>
+    <path d="M61 176c0-17 25-17 25 0v47h96v-47c0-17 25-17 25 0v61H61Z" fill="#788247"/>
+    <path d="M86 209h96v28H86Z" fill="#C7CD96"/>
+    <path d="m76 237-8 61m124-61 8 61" stroke-width="8" stroke-linecap="round"/>
+    <path d="M273 104V46h111v124H273Z" fill="#B54E65"/>
+    <path d="M287 60h83v96h-83Z" fill="#FFF9EE" stroke-width="3"/>
+    <path d="m294 144 28-42 18 22 22-14v39h-68Z" fill="#A7B073" stroke="none"/>
+    <circle cx="344" cy="82" r="11" fill="#E7A34D" stroke="none"/>
+    <path d="M228 119h70l-13 43h-44Z" fill="#F1C08B"/>
+    <path d="M263 162v100m-20 4h40" stroke-linecap="round"/>
+    <path d="M243 293h164V187H243Z" fill="#D6AB7E"/>
+    <path d="m243 187 81 24 83-24m-83 24v82" stroke-width="3"/>
+    <path d="m243 187-21 24 81 24 21-24 21 24 83-24-21-24" fill="#F1D1A4" stroke-width="3"/>
+    <path d="M365 170c-5-17-3-25 4-33h22c8 9 10 17 4 33Z" fill="#FFF9EE"/>
+    <path d="m373 139-3-38m14 38 12-40" stroke="#788247" stroke-width="4"/>
+  </g>
+  <path d="M366 110c-20-8-19-20-8-24 13 3 18 12 8 24Zm25 1c-4-18 5-27 17-22 4 13-1 21-17 22Z" fill="#788247"/>
+  <rect x="338" y="239" width="48" height="34" rx="5" transform="rotate(8 338 239)" fill="#FFF9EE"/>
+  <path d="M352 257c2-9 5-12 11-12m0 14c1-7 6-12 11-13" stroke="#788247" stroke-width="2"/>
+  <circle cx="352" cy="260" r="6" fill="#C63552"/><circle cx="364" cy="263" r="6" fill="#970A2B"/>
+</svg>
