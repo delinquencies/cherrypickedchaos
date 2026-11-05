@@ -1,38 +1,44 @@
-# Cherry Picked Chaos — landing-page preview
+# Cherry Picked Chaos
 
-Static HTML, CSS, and vanilla JavaScript. No installation or build step required.
+Static HTML, CSS, and JavaScript website. Open index.html through a local static server. No framework or build step is required.
 
-## Preview
+## Current experience
 
-Open index.html, or serve this folder with `python -m http.server 8001 --bind 127.0.0.1` and visit http://127.0.0.1:8001/index.html?v=estate-2.
+- Retro opening ticket with a countdown to the next confirmed retail session, Texas daylight-saving offsets, and a matching calendar file. opening.js owns the schedule; next-level.js refreshes the display every 30 seconds and on tab return. After April 17, 2027 at 5 pm Texas time, no new date is invented and the ticket calendar link disappears.
+- Freshly Picked gallery uses labeled brand illustrations until real merchandise photos are approved. No sample photos are presented as inventory.
+- Come Find Us pairs the illustrated storefront with an address map, directions, complimentary mimosas or coffee, and client-confirmed parking on both visible sides of the building. Storefront art is labeled as illustration; imagined signage is not a record of installed signage.
+- Cherry Drops VIP uses an email request, as requested by the user. The modal validates name, email and consent, then opens the visitor’s email app with a prefilled request to cherrypickedchaos26@gmail.com. No automatic subscription occurs. A retry link and direct email link remain available. Future EmailOctopus integration awaits the client’s account; never put credentials in browser files.
+- Hovering cherries, a capped desktop parallax effect, paper-card transitions and a keyboard-accessible footer cherry surprise. Reduced-motion preferences disable animation.
+- Former shop.html redirects to Freshly Picked. Demo bag, pricing, checkout and invented product listings were removed, along with demo.js and demo.css.
 
-The main experience is a groovy, cherry-heavy landing page with an illustrated hero, temporary brand gallery, Schulenburg area map, contact form, Cherry Bombs signup, and visitor FAQs. Shop details and gallery photos await the client. The map is an area overview, not a verified shop pin. The illustration includes imagined signage and displays.
+## Confirmed business details
 
-The Visit section includes a user-confirmed complimentary mimosa note during open retail hours and a small vector illustration. Cherry Bombs has a compact CTA between Gallery and Visit, with its signup in a native dialog that slides in on request. Contact remains the only inline form. Instagram/Facebook icon buttons are labeled, disabled placeholders awaiting client URLs. hospitality.css styles these additions. The signup dialog supports Escape, a close button, background dismissal on desktop, and focus return; it does not auto-open on ordinary landing-page visits. Links ending in #cherry-bombs explicitly open it.
+621 Lyons Ave., Schulenburg, TX 78956. Call/text 713-446-4832. Email cherrypickedchaos26@gmail.com. Website cherrypickedchaos.com. Open third weekends, Friday and Saturday, 10 am–5 pm, or by appointment. Supplied weekends: November 20–21 and December 18–19, 2026; January 15–16, February 19–20, March 19–20 and April 16–17, 2027. Facebook profile ID 100090079657840; Instagram @cherrypickedchaos.
 
-The hero's Next chance to cherry-pick card appears below its buttons and before the mobile collage. Update the dateLabel and hoursLabel in opening.js to update both the card and Visit together. Both have HTML placeholder fallbacks if JavaScript is unavailable. The hanging Closed — Out Pickin’ sign is a decorative preview while hours are pending; no live status or automatic event expiration is implemented.
+## Add approved merchandise photos
 
-## File organization
+Add local files under assets/ and add entries to treasures.json. Example structure (use real, approved content):
 
-- index.html, landing.css, and app.js: landing experience and local preview forms.
-- style.css and groove.css: shared foundation and retro identity.
-- shop.html, demo.js, and demo.css: independent shopping demonstration, including product rendering, prices, filters, Surprise Me, persistent demo bag, drawer, and commerce animation. Demo resources are not loaded by the landing page. A discreet footer link opens the demo.
-- guide.html: restored Schulenburg day-trip guide, reached through a small illustrated teaser in Visit; guide.css supplies its mobile-first layout. Painted Churches and dining links point to the Chamber's visitor information, checked November 4, 2026. The church illustration is decorative, not a likeness of a particular church.
-- estate.html, estate.css, assets/estate-keepsakes.svg: dedicated Estate Liquidation page, linked from the public nav and home footer. Covers estate inquiries, downsizing, and collections with a preview-only form. Service area, project terms, and availability need client confirmation. The form does not send data, book visits, or provide quotes. Public pages use the mobile menu through 950px to keep the expanded navigation comfortable.
-- drops.html: legacy URL redirects to the Cherry Bombs signup.
-- reference/: original Google Stitch export and supplied references.
-- AUDIT.md: historical initial audit, before restructuring.
+```json
+{"items":[{"approved":true,"image":"assets/approved-photo.webp","alt":"Accurate description of the real photo","title":"Approved item name","tag":"Client-approved tag","description":"Accurate description"}]}
+```
 
-## Template fillers
+The empty items list is intentional. Only explicitly approved entries with local image paths, titles and alt text render. Keep descriptions accurate; do not imply availability without confirmation. The illustration gallery stays visible if the list is empty or unavailable. Contact is by phone/text; no online orders or holds.
 
-Client address, opening dates, phone, and email appear as bracketed placeholders in index.html. Replace them, update the map query and caption, and supply approved shop/gallery photos when available.
+## Files
 
-Contact and signup forms validate and show local preview feedback. They do not send, store, or subscribe anyone. Signup consent is required for the preview. Inline cancellation also prevents field values being submitted if JavaScript fails to load. Connecting real delivery or a mailing-list service is a future step requiring confirmed client details. No payments, orders, inventory sync, or reservations are implemented.
+index.html is the main site; style.css, groove.css, landing.css, hospitality.css, opening.css and next-level.css layer the existing design. app.js handles menus, the VIP dialog and local contact/estate previews. next-level.js handles the ticket, VIP email handoff, approved-photo gallery and small interactions. estate.html and guide.html retain the estate inquiry and Schulenburg day-trip guide. drops.html preserves the old signup link. assets/calendar/ contains six downloadable ICS files with separate Friday and Saturday events at 10 am–5 pm Texas time. Calendar imports are snapshots, not live subscriptions.
 
-Google Fonts and the embedded Google Map require internet access. The map has a separate area-map link. Other artwork is bundled locally.
+Contact and estate forms remain local previews; their response messages provide direct contact details. Google Fonts and the Google Map require network access. Map directions also work through a separate link.
 
-The town guide has stable cards for future local partner/affiliate links (`data-partner-slot`). No affiliate relationships, tracking, or commissions are active. Once real partners are supplied, update each relevant card's destination and place a clear disclosure beside any affiliate link. Keep the landing-page teaser small and preserve the town guide when changing commerce features.
+## Verification
 
-## Validation
+Browser checks cover widths 320, 390, 700, 800, 1000, 1050, 1280 and 1440; overflow, centered stacked hero, mobile feature cards, VIP open/close/focus return, required consent, encoded email handoff, calendar response files, legacy shop redirect, reduced motion, no-JavaScript content, and the approved-photo rendering path. Schedule checks cover Friday/Saturday transitions, March daylight saving and expiry after the final supplied weekend. All twelve calendar events were checked for 10 am–5 pm Texas time.
 
-Checked JavaScript syntax, local references, desktop and phone layouts, form validation and consent, preview responses, map rendering, mobile menu dismissal, and independent shop filtering/Surprise Me/bag behavior. The demo drawer excludes hidden controls from keyboard navigation, focuses Close on open, contains Tab navigation, and restores its opener on Escape.
+## Current page structure (supersedes earlier layout notes)
+- index.html: hero ticket, treasure categories, Freshly Picked, opening calendar with refreshments, map, and unified Contact/VIP email form.
+- about.html: Melissa and Candy biography, with room in the source for verified building history later.
+- guide.html#shop-visit: address, opening schedule link, appointments, confirmed parking, storefront illustration and FAQs, followed by the four Schulenburg day-trip stops.
+- estate.html: separate estate inquiry preview.
+
+The VIP drawer and standalone invitation were removed. Contact now prepares an email with an optional unchecked VIP opt-in. A message is optional only when VIP is requested; the visitor can send a normal message, request VIP only, or combine them. Sending still takes place in the visitor's email app. No automatic subscriptions or automatic email delivery. The old signup links continue to work by leading to Contact, without preselecting consent. The About Us page is linked across all public pages. Browser checks cover all four pages at 320, 390, 800, 1000 and 1280 pixels, mobile menus, contact/VIP consent paths, local navigation anchors and legacy redirects.

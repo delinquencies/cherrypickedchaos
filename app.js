@@ -1,4 +1,4 @@
-// Shared navigation and local form previews. Commerce lives in demo.js.
+// Shared navigation, legacy links, and the separate estate inquiry preview.
 document.addEventListener('DOMContentLoaded', () => {
   const opening = window.CPC_OPENING;
   if (opening) {
@@ -16,33 +16,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const open = nav.classList.toggle('open');
     menu.setAttribute('aria-expanded', String(open));
   });
-  // Newsletter uses a native modal, independent of the commerce demo drawer.
-  const bombsPanel = document.getElementById('cherry-bombs-panel');
-  let bombsOpener;
-  let previousOverflow;
-  function openBombs(opener) {
-    if (!bombsPanel || bombsPanel.open) return;
-    closeMenu();
-    bombsOpener = opener || document.querySelector('[data-open-bombs]');
-    previousOverflow = document.body.style.overflow;
-    bombsPanel.showModal();
-    document.body.style.overflow = 'hidden';
+  // Preserve former signup and biography deep links after simplifying the page.
+  function legacyLinks() {
+    if (['#cherry-bombs', '#cherry-drops', '#vip'].includes(location.hash)) {
+      if (!document.getElementById('contact')) return;
+      history.replaceState(null, '', '#contact');
+      document.getElementById('contact').scrollIntoView({behavior:'auto'});
+      document.getElementById('contact-vip')?.focus({preventScroll:true});
+    }
+    if (location.hash === '#about' && document.body.classList.contains('landing-page') && !document.body.classList.contains('about-page')) location.replace('about.html');
   }
-  document.querySelectorAll('[data-open-bombs]').forEach(button => {
-    button.addEventListener('click', () => openBombs(button));
-  });
-  bombsPanel?.querySelector('[data-close-bombs]')?.addEventListener('click', () => bombsPanel.close());
-  bombsPanel?.addEventListener('click', event => {
-    if (event.target !== bombsPanel) return;
-    const bounds = bombsPanel.getBoundingClientRect();
-    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) bombsPanel.close();
-  });
-  bombsPanel?.addEventListener('close', () => {
-    document.body.style.overflow = previousOverflow || '';
-    if (bombsOpener?.closest('#nav-links') && !nav.classList.contains('open') && getComputedStyle(menu).display !== 'none') menu.focus();
-    else bombsOpener?.focus({preventScroll:true});
-  });
-  if (location.hash === '#cherry-bombs') openBombs();
+  legacyLinks();
+  window.addEventListener('hashchange', legacyLinks);
   nav?.querySelectorAll('a').forEach(link => link.addEventListener('click', event => {
     closeMenu();
     if (link.hash && link.pathname === location.pathname) {
@@ -68,9 +53,9 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', e => {
       e.preventDefault();
       const messages = {
-        contact: 'Your message preview looks good. Nothing was sent or saved — the contact form is waiting for the shop’s details.',
+        contact: 'Your message preview looks good. Nothing was sent or saved — please email cherrypickedchaos26@gmail.com or call 713-446-4832 to reach us.',
         signup: 'You’ve tried the Cherry Bombs signup! No subscription was created and no details were sent or saved. The mailing list is coming soon.',
-        estate: 'Your estate inquiry preview is ready. Nothing was sent or saved, and no visit or service was booked. The inquiry form will be connected when the client’s contact details are confirmed.'
+        estate: 'Your estate inquiry preview is ready. Nothing was sent or saved, and no visit or service was booked. Please call 713-446-4832 or email cherrypickedchaos26@gmail.com to discuss your inquiry.'
       };
       response.textContent = messages[form.dataset.previewForm] || 'Preview only — nothing was sent or saved.';
       response.hidden = false;

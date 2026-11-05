@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" fill="none">
+  <title>A little coffee on us</title>
+  <circle cx="110" cy="98" r="79" fill="#EDF0C8"/>
+  <g stroke="#970A2B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M151 79h12c31 0 29 45 0 45h-13" fill="#FFD6DB"/>
+    <path d="M154 89h9c15 0 14 24-2 24h-9" fill="#EDF0C8"/>
+    <path d="M54 73h102l-7 56c-3 23-17 30-43 30s-41-7-44-30Z" fill="#FFFDF5"/>
+    <ellipse cx="105" cy="74" rx="51" ry="12" fill="#715044"/>
+    <path d="M46 158c18 19 102 22 126 0Z" fill="#FFD6DB"/>
+    <path d="M83 48c-12-14 13-16 2-31M111 48c-13-14 13-16 3-32M138 49c-12-13 11-17 2-28" stroke="#788247" stroke-width="3"/>
+    <path d="M96 104c0-10 8-15 13-18m-1 23c5-12 13-17 17-18" stroke="#424C18" stroke-width="3"/>
+  </g>
+  <path d="M108 88c9-6 17-4 20 2-9 4-15 3-20-2Z" fill="#788247"/>
+  <circle cx="94" cy="118" r="10" fill="#BD123C"/>
+  <circle cx="115" cy="123" r="10" fill="#970A2B"/>
+  <path d="M89 115l3-3m18 8 3-3" stroke="#FFBBC8" stroke-width="3" stroke-linecap="round"/>
+  <path d="M28 82v16m-8-8h16M182 40v12m-6-6h12" stroke="#B34860" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,32 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Cherry Picked Chaos//Retail Weekends//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:retail-20270319@cherrypickedchaos.com
+DTSTAMP:20261104T000000Z
+DTSTART:20270319T150000Z
+DTEND:20270319T220000Z
+SUMMARY:Cherry Picked Chaos - Treasure Hunt Weekend
+LOCATION:621 Lyons Ave.\, Schulenburg\, TX 78956
+DESCRIPTION:Vintage and thrift shopping. Open 10 am-5 pm Texas time.
+ Complimentary mimosas or coffee during retail hours. Call or text
+ 713-446-4832 for appointments.
+URL:https://cherrypickedchaos.com
+TRANSP:TRANSPARENT
+END:VEVENT
+BEGIN:VEVENT
+UID:retail-20270320@cherrypickedchaos.com
+DTSTAMP:20261104T000000Z
+DTSTART:20270320T150000Z
+DTEND:20270320T220000Z
+SUMMARY:Cherry Picked Chaos - Treasure Hunt Weekend
+LOCATION:621 Lyons Ave.\, Schulenburg\, TX 78956
+DESCRIPTION:Vintage and thrift shopping. Open 10 am-5 pm Texas time.
+ Complimentary mimosas or coffee during retail hours. Call or text
+ 713-446-4832 for appointments.
+URL:https://cherrypickedchaos.com
+TRANSP:TRANSPARENT
+END:VEVENT
+END:VCALENDAR
