@@ -8,7 +8,7 @@ export function shippingRateMode(env, preview) {
   return token?.startsWith('shippo_live_') && env.SHIPPING_RATE_LIMIT ? 'live' : null;
 }
 
-export async function shippingCents(item, zip, env) {
+export async function shippingCents(item, address, env) {
   const response = await fetch('https://api.goshippo.com/shipments/', {
     method: 'POST',
     headers: {
@@ -18,7 +18,7 @@ export async function shippingCents(item, zip, env) {
     },
     body: JSON.stringify({
       address_from: { street1: '621 Lyons Ave.', city: 'Schulenburg', state: 'TX', zip: shippingOrigin, country: 'US' },
-      address_to: { zip, country: 'US' },
+      address_to: { ...address, country: 'US' },
       parcels: [{
         weight: String(item.ship_weight_lb),
         length: String(item.ship_length_in),

@@ -1,5 +1,5 @@
 import { demoShippingCents, shippingCents, shippingOrigin, shippingRateMode } from './shipping.mjs';
-import { cancelSandboxCheckout, checkSandboxPayment, getSandboxCheckout, openSandboxCheckout, reserveSandboxCheckout, sandboxReady } from './square-sandbox.mjs';
+import { cancelSandboxCheckout, checkSandboxPayment, getSandboxCheckout, handleSandboxWebhook, openSandboxCheckout, reserveSandboxCheckout, sandboxReady } from './square-sandbox.mjs';
 
 const imageLimit = 1_000_000;
 const itemId = '[a-f0-9-]{36}';
@@ -417,17 +417,34 @@ function sandboxCheckoutPage(checkout, message = '', status = 200) {
     paid: '<p>Square confirmed the Sandbox payment.</p>',
     canceled: '<p>Test checkout canceled. The item is available again.</p>'
   };
+  const destination = checkout.shipping_address && JSON.parse(checkout.shipping_address);
+  const shipping = destination ? `<p>Test shipping to ${escapeHtml(destination.street1)}, ${escapeHtml(destination.city)}, TX ${escapeHtml(destination.zip)}.</p>
+    <p>${destination.rateMode === 'test' ? 'Shippo test quote · USPS Ground Advantage' : 'Example postage'}: ${currency.format(checkout.shipping_cents / 100)}</p>` : '<p>Test local pickup in Schulenburg.</p>';
   const total = checkout.total_cents == null ? '' :
-    `<p>Sandbox sales tax: ${currency.format((checkout.total_cents - checkout.price_cents) / 100)}</p>
+    `<p>Sandbox sales tax: ${currency.format((checkout.total_cents - checkout.price_cents - checkout.shipping_cents) / 100)}</p>
      <p>Test total: <strong>${currency.format(checkout.total_cents / 100)}</strong></p>`;
   return page('Square Sandbox checkout', `
     <a href="/">← Back to the preview shop</a>
     <h1>Square Sandbox checkout</h1>
-    <p class="notice">Local pickup test. Use a Square Sandbox test card.</p>
+    <p class="notice">Sandbox only. Use Square’s simulated payment panel.</p>
     <h2>${escapeHtml(checkout.title)}</h2>
-    <p>Item subtotal: ${currency.format(checkout.price_cents / 100)}</p>${total}
+    <p>Item subtotal: ${currency.format(checkout.price_cents / 100)}</p>${shipping}${total}
     ${message ? `<p role="status">${message}</p>` : ''}
     <div class="actions">${controls[checkout.state]}</div>`, status);
+}
+
+async function sandboxShipping(form, item, env) {
+  const street1 = getField(form, 'street');
+  const city = getField(form, 'city');
+  const zip = getField(form, 'zip');
+  if (!item.ship_weight_lb || !street1 || street1.length > 100 || !city || city.length > 80 || !validShippingZip(zip)) {
+    throw new ListingError('Enter a complete Texas test delivery address for a shippable item.');
+  }
+  const address = { street1, city, state: 'TX', zip };
+  const mode = shippingRateMode(env, true);
+  const cents = mode === 'test' ? await shippingCents(item, address, env) : demoShippingCents;
+  if (cents === null) throw new ListingError('USPS Ground Advantage is unavailable for this test address and box.');
+  return { address, cents, mode };
 }
 
 async function handleSandboxCheckout(request, env, url) {
@@ -444,7 +461,11 @@ async function handleSandboxCheckout(request, env, url) {
     if (!new RegExp(`^${itemId}$`).test(id)) return notFound();
     const finds = checkoutFinds(await shopListings(db), true);
     const item = finds.find(find => (find.id ?? find.image) === itemKey);
-    const checkout = item && await reserveSandboxCheckout(env, id, item);
+    let checkout = await getSandboxCheckout(db, id);
+    if (item && !checkout) {
+      const shipping = getField(form, 'fulfillment') === 'shipping' ? await sandboxShipping(form, item, env) : null;
+      checkout = await reserveSandboxCheckout(env, id, item, shipping);
+    }
     return checkout?.item_key === itemKey ? redirect('/sandbox/checkout/' + id) :
       page('Find unavailable', '<h1>This find is unavailable for a test checkout.</h1><a href="/">Return to the preview shop</a>', 409);
   }
@@ -477,7 +498,7 @@ async function quoteShipping(items, zip, env, mode, clientIp) {
     if (mode === 'live' && !(await env.SHIPPING_RATE_LIMIT.limit({ key: clientIp })).success) {
       return { cents: null, status: 429, message: 'Too many shipping estimates. Try again in a minute.' };
     }
-    const prices = await Promise.all(items.map(item => shippingCents(item, zip, env)));
+    const prices = await Promise.all(items.map(item => shippingCents(item, { zip }, env)));
     if (prices.every(price => price !== null)) {
       return { cents: prices.reduce((total, price) => total + price, 0), status: 200 };
     }
@@ -538,12 +559,22 @@ async function checkoutSummary(env, params, preview, clientIp) {
           <div><dt>${hasQuote ? shippingLabel : 'Local pickup'}</dt><dd>${currency.format(postage / 100)}</dd></div>
           <div class="price"><dt>Estimated total before tax</dt><dd>${currency.format((subtotal + postage) / 100)}</dd></div>
         </dl>
-        ${preview && sandboxReady(env) && items.length === 1 && !params.has('zip') ? `
+        ${preview && sandboxReady(env) && items.length === 1 ? `
           <form action="/sandbox/checkout" method="post">
             <input type="hidden" name="item" value="${escapeHtml(ids[0])}">
             <input type="hidden" name="attempt" value="${crypto.randomUUID()}">
             <button type="submit">Start Square Sandbox pickup test</button>
-          </form>` : ''}
+          </form>
+          ${canShip ? `<form action="/sandbox/checkout" method="post" class="checkout-shipping">
+            <input type="hidden" name="item" value="${escapeHtml(ids[0])}">
+            <input type="hidden" name="attempt" value="${crypto.randomUUID()}">
+            <input type="hidden" name="fulfillment" value="shipping">
+            <p class="hint">Use a sample Texas address. ${mode === 'test' ? 'Quotes use Shippo test rates.' : 'Shipping uses example postage.'}</p>
+            <label>Test street address <input name="street" required maxlength="100"></label>
+            <label>Test city, TX <input name="city" required maxlength="80"></label>
+            <label>Test ZIP <input name="zip" required inputmode="numeric" pattern="[0-9]{5}" maxlength="5" value="${validShippingZip(zip) ? zip : ''}"></label>
+            <button type="submit">Start Square Sandbox shipping test</button>
+          </form>` : ''}` : ''}
       </section>
     </div>`, quote?.status ?? 200);
 }
@@ -585,6 +616,7 @@ export function createStore(isAdmin, { preview = false } = {}) {
       const adminRoute = path === '/manage' || path.startsWith('/manage/');
       const db = env.STORE_DB;
       try {
+        if (preview && sandboxReady(env) && path === '/sandbox/webhook') return await handleSandboxWebhook(request, env);
         if (preview && sandboxReady(env) && (path === '/sandbox/checkout' || path.startsWith('/sandbox/checkout/'))) {
           return await handleSandboxCheckout(request, env, url);
         }

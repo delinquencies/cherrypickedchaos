@@ -25,11 +25,13 @@ The local editor is open for testing on loopback and uses a local database. When
 
 ## Checkout before launch
 
-The local preview supports a one-item pickup test with a Square-hosted Sandbox payment link. In the ignored `commerce/.dev.vars` file, set `SQUARE_SANDBOX_ACCESS_TOKEN` and `SQUARE_SANDBOX_LOCATION_ID`. Apply the local migrations again with `npm run prepare:preview`, then start the preview. Add one find to the bag, choose pickup, and select **Start Square Sandbox pickup test**. Open the generated test link and use Square's test panel. Return to the preview and choose **Check payment status** to reconcile the payment.
+The local preview supports one-item pickup and shipping tests with a Square-hosted Sandbox payment link. In the ignored `commerce/.dev.vars` file, set `SQUARE_SANDBOX_ACCESS_TOKEN` and `SQUARE_SANDBOX_LOCATION_ID`. Apply the local migrations again with `npm run prepare:preview`, then start the preview. Add one find to the bag and start a Sandbox test. For shipping, use a sample Texas address and a shippable item. The preview requests a full-address Shippo quote with a test token, or uses labeled example postage. Open the generated test link and use Square's test panel. Return to the preview and choose **Check payment status** to reconcile the payment.
 
-The Sandbox uses an 8.25% test tax. The server holds one item per checkout and retries Square link creation using the same request ID. If the payment outcome is uncertain, the item stays held. Canceling releases the hold after Square confirms cancellation. Confirmed test payments are recorded in the local checkout table.
+The Sandbox uses an 8.25% test tax on the item and shipping. This uses Square's Sandbox rounding. Verify the exact pickup address and applicable destination rules, and account for Texas half-cent rounding before using this for real sales. The server holds one item per checkout and retries Square link creation using the same request ID. If the payment outcome is uncertain, the item stays held. Canceling releases the hold after Square confirms cancellation. Confirmed test payments are recorded in the local checkout table.
 
-Before taking production payments, add fulfillment and verified tax rules, confirm payment and cancellation through webhooks, update sale inventory, and verify declines, refunds, and owner notifications. For shipping, quote from the buyer's delivery address. Keep production Square credentials in Worker secrets.
+The preview handles signed `payment.created` and `payment.updated` events at `/sandbox/webhook` when `SQUARE_SANDBOX_WEBHOOK_KEY` and `SQUARE_SANDBOX_WEBHOOK_URL` are configured. It checks the raw-body signature against the configured notification URL and reads the payment from Square before marking it paid. The loopback preview can receive signed test replays. To test delivery from Square itself, use a separate HTTPS Sandbox environment.
+
+Before taking production payments, add fulfillment and verified tax rules, configure and test real webhook delivery, update sale inventory, and verify declines, refunds, and owner notifications. Keep production Square credentials in Worker secrets.
 
 ## U.S. shipping estimates
 
