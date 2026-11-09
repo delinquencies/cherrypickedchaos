@@ -120,9 +120,8 @@ function demoBagDrawer(showSamples) {
     <p class="bag-empty">A little empty in here! Find a treasure to tuck away.</p>
     <ul class="bag-items" aria-label="Finds in your demo bag"></ul>
     <p class="bag-subtotal"><span>Item subtotal</span><strong>$0.00</strong></p>
-    <form method="dialog"><button type="submit">Keep browsing</button></form>
-  </dialog>
-  <p class="bag-toast" role="status"></p>`;
+    <form method="dialog"><button type="submit">Continue shopping</button></form>
+  </dialog>`;
 }
 
 function storefront(items, preview, ratesAvailable) {

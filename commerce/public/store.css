@@ -166,8 +166,6 @@ body:has(.bag-drawer[open]) { overflow: hidden; }
 .bag-subtotal { display: flex; justify-content: space-between; gap: 10px; margin-block: 20px; font-weight: 800; }
 .bag-empty { padding: 20px 0; text-align: center; font: italic 800 1.1rem var(--serif); }
 .bag-empty::before { content: ''; display: block; width: 54px; height: 54px; margin: 0 auto 12px; background: url('/brand/cherries.svg') center / contain no-repeat; }
-.bag-toast { position: fixed; z-index: 2; inset: auto 12px 12px; width: fit-content; margin: 0 auto; padding: 10px 15px; border: 2px solid #ffedb5; border-radius: 18px; background: var(--olive); color: white; font-weight: 800; text-align: center; pointer-events: none; }
-.bag-toast:empty { opacity: 0; }
 @media (prefers-reduced-motion: no-preference) {
   .bag-drawer[open] { animation: bag-slide-in .24s ease-out; }
   @keyframes bag-slide-in { from { transform: translateX(100%); } }

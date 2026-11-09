@@ -44,13 +44,11 @@ if (drawer && typeof drawer.showModal === 'function') {
   const list = drawer.querySelector('.bag-items');
   const empty = drawer.querySelector('.bag-empty');
   const subtotal = drawer.querySelector('.bag-subtotal strong');
-  const toast = document.querySelector('.bag-toast');
   const addButtons = [...document.querySelectorAll('.bag-add')];
   const products = new Map(addButtons.map(add => [add.dataset.bagItem, add]));
   const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const storageKey = drawer.dataset.storageKey;
   let bag = new Set();
-  let toastTimer;
 
   function restoreBag() {
     try {
@@ -103,26 +101,16 @@ if (drawer && typeof drawer.showModal === 'function') {
     subtotal.textContent = currency.format(cents / 100);
   }
 
-  function announce(message) {
-    clearTimeout(toastTimer);
-    toast.textContent = message;
-    toastTimer = setTimeout(() => { toast.textContent = ''; }, 3200);
-  }
-
   addButtons.forEach(add => {
     add.hidden = false;
     add.addEventListener('click', () => {
       const id = add.dataset.bagItem;
-      if (bag.has(id)) {
-        announce('That find is already in your demo bag.');
-        return;
+      if (!bag.has(id)) {
+        bag.add(id);
+        updateBag();
       }
-      bag.add(id);
-      updateBag();
-      announce('A sweet little find for your demo bag!');
-      if (matchMedia('(prefers-reduced-motion: no-preference)').matches) {
-        opener.animate([{ transform: 'none' }, { transform: 'scale(1.1) rotate(-5deg)' }, { transform: 'none' }], 340);
-      }
+      add.focus({ preventScroll: true });
+      drawer.showModal();
     });
   });
   opener.hidden = false;
