@@ -1,10 +1,17 @@
 const imageLimit = 1_000_000;
 const itemId = '[a-f0-9-]{36}';
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const categories = {
+  wear: 'Vintage Wear',
+  stoneware: 'Stoneware',
+  primitives: 'Primitives',
+  americana: 'Americana',
+  other: 'Other Finds'
+};
 const securityHeaders = {
   'Cache-Control': 'no-store',
-  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
-  'Referrer-Policy': 'no-referrer',
+  'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+  'Referrer-Policy': 'same-origin',
   'X-Content-Type-Options': 'nosniff',
   'X-Robots-Tag': 'noindex'
 };
@@ -15,19 +22,32 @@ function escapeHtml(value) {
   })[character]);
 }
 
-function page(title, content, status = 200, admin = false) {
+function page(title, content, status = 200, { editor = false, shop = false } = {}) {
   return new Response(`<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff9ee">
   <title>${escapeHtml(title)} | Cherry Picked Chaos</title>
+  <link rel="icon" href="/brand/cherries.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/store.css">
-  ${admin ? '<script defer src="/manage.js"></script>' : ''}
+  ${editor ? '<script defer src="/manage.js"></script>' : ''}
+  ${shop ? '<script defer src="/shop.js"></script>' : ''}
 </head>
 <body>
-  <header><a href="/">🍒 Cherry Picked Chaos</a></header>
-  <main>${content}</main>
+  <div class="announcement">A little vintage • A lotta personality • Schulenburg, Texas</div>
+  <header class="site-header">
+    <div class="container header-row">
+      <a class="brand" href="/" aria-label="Cherry Picked Chaos storefront">
+        <img src="/brand/cherries.svg" alt="" width="50" height="54">
+        <span>Cherry Picked <strong>Chaos!</strong></span>
+      </a>
+      <a class="header-link" href="${shop ? 'https://www.cherrypickedchaos.com/' : '/'}">${shop ? '← Back to the main site' : 'View shop ↗'}</a>
+    </div>
+  </header>
+  <main class="${shop ? 'shop' : 'container workspace'}">${content}</main>
+  ${shop ? '<footer class="site-footer"><div class="container"><strong>Cherry Picked Chaos!</strong><p>Curated with intention. Chosen just for you. ♥</p></div></footer>' : ''}
 </body>
 </html>`, { status, headers: { ...securityHeaders, 'Content-Type': 'text/html; charset=utf-8' } });
 }
@@ -36,33 +56,67 @@ function redirect(path) {
   return new Response(null, { status: 303, headers: { ...securityHeaders, Location: path } });
 }
 
-function storefront(items) {
-  const cards = items.map(item => `
-    <article class="card">
-      <img src="/photo/${item.id}?v=${item.version}" alt="${escapeHtml(item.title)}" loading="lazy">
+const sampleFinds = [
+  { title: 'Chainstitch Embroidered Denim Jacket', image: 'jacket', price_cents: 18500, category: 'wear', description: 'Western floral chainstitch on well-worn denim.' },
+  { title: 'Texas Salt-Glazed Stoneware Crock', image: 'crock', price_cents: 14500, category: 'stoneware', description: 'Cobalt-blue folk floral details and old mercantile charm.' },
+  { title: 'Vintage Texas Gasoline Porcelain Sign', image: 'sign', price_cents: 32000, category: 'americana', description: 'Weathered roadside style with collectible Texas character.' },
+  { title: 'Primitive Pine Dough Bowl & Scoop', image: 'bowl', price_cents: 21000, category: 'primitives', description: 'Rustic hand-carved wood with a warm aged patina.' }
+];
+
+function storefront(items, preview) {
+  const showSamples = preview && items.length === 0;
+  const finds = showSamples ? sampleFinds : items;
+  const cards = finds.map(item => `
+    <article class="card" tabindex="-1" data-category="${item.category}">
+      <div class="card-photo">
+        <img src="${showSamples ? '/samples/' + item.image + '.webp' : '/photo/' + item.id + '?v=' + item.version}" alt="${escapeHtml(item.title)}" loading="lazy">
+        <span class="tag">${showSamples ? 'Sample listing' : item.status === 'sold' ? 'Sold' : 'One of a kind'}</span>
+      </div>
       <div class="card-body">
-        <span class="tag">${item.status === 'sold' ? 'Sold' : 'One of a kind'}</span>
+        <span class="category-tag">${categories[item.category]}</span>
         <h2>${escapeHtml(item.title)}</h2>
         <p class="description">${escapeHtml(item.description)}</p>
-        <p class="price">${currency.format(item.price_cents / 100)}</p>
+        <p class="price">${currency.format(item.price_cents / 100)}${showSamples ? '<small>Illustrative price</small>' : ''}</p>
       </div>
     </article>`).join('');
+  const filters = Object.entries(categories)
+    .filter(([category]) => category !== 'other' || finds.some(item => item.category === category))
+    .map(([category, label]) => `<button type="button" data-filter="${category}" aria-pressed="false">${label}</button>`).join('');
   return page('Shop Selected Finds', `
-    <p class="eyebrow">The digital treasure table</p>
-    <h1>Shop Selected Finds.</h1>
-    <p>A little collection of one-of-a-kind finds for pickup in Schulenburg.</p>
-    <p class="notice">Store preview. Checkout will open after Square is connected.</p>
-    ${cards ? `<div class="grid">${cards}</div>` : '<p>No finds have been published yet.</p>'}`);
+    <section class="shop-hero">
+      <img class="hero-cherries" src="/brand/cherries.svg" alt="" aria-hidden="true" width="145" height="150">
+      <div class="container">
+        <p class="eyebrow">The digital treasure table</p>
+        <h1>Good stuff, <em>picked for you.</em></h1>
+        <p>One-of-a-kind vintage finds, picked with love in Schulenburg.</p>
+      </div>
+    </section>
+    <section class="container shop-finds" aria-label="Shop finds">
+      <p class="notice">${showSamples ? 'These sample finds and prices are for browsing. ' : ''}Online checkout is coming soon.</p>
+      ${cards ? `
+        <div class="lucky-bar">
+          <p>Go on, have a little look!</p>
+          <button class="lucky-button" type="button" hidden><img src="/brand/cherries.svg" alt="" width="24" height="24"> Surprise me!</button>
+        </div>
+        <div class="filters" role="group" aria-label="Product categories" hidden>
+          <button type="button" data-filter="all" aria-pressed="true">✦ All Finds</button>${filters}
+        </div>
+        <div class="grid">${cards}</div>
+        <p class="empty-category" role="status" hidden>No finds in this category yet.</p>` : '<p>No finds have been published yet.</p>'}
+    </section>`, 200, { shop: true });
 }
 
 function editor(item = null) {
   const editing = item !== null;
   const id = editing ? item.id : '';
+  const categoryOptions = Object.entries(categories).map(([value, label]) =>
+    `<option value="${value}"${item?.category === value ? ' selected' : ''}>${label}</option>`).join('');
   return `
     <form class="editor" method="post" enctype="multipart/form-data" action="/manage/save">
       <input type="hidden" name="id" value="${id}">
       <input type="hidden" name="version" value="${item?.version ?? ''}">
       <label>Title <input name="title" required maxlength="100" value="${escapeHtml(item?.title ?? '')}"></label>
+      <label>Category <select name="category" required><option value="">Choose a category</option>${categoryOptions}</select></label>
       <label>Description and condition <textarea name="description" required maxlength="2000" rows="5">${escapeHtml(item?.description ?? '')}</textarea></label>
       <label>Price in dollars <input name="price" type="number" inputmode="decimal" min="0.01" max="99999.99" step="0.01" required value="${editing ? (item.price_cents / 100).toFixed(2) : ''}"></label>
       <label>${editing ? 'Replace photo (optional)' : 'Photo'}
@@ -76,11 +130,11 @@ function editor(item = null) {
 function manage(items, preview) {
   const rows = items.map(item => `
     <li>
-      <div><strong>${escapeHtml(item.title)}</strong><br><span class="hint">${currency.format(item.price_cents / 100)} · ${item.status}</span></div>
+      <div><strong>${escapeHtml(item.title)}</strong><br><span class="hint">${currency.format(item.price_cents / 100)} · ${categories[item.category]} · ${item.status}</span></div>
       <a href="/manage/item/${item.id}">Edit listing →</a>
     </li>`).join('');
   return page('Manage listings', `
-    <p class="eyebrow">Shop editor</p>
+    <p class="eyebrow">Behind the treasure table</p>
     <h1>Manage listings.</h1>
     ${preview ? '<p class="notice">Local preview. Listings saved here stay on this computer.</p>' : ''}
     <a class="button" href="/manage/new">Add a find</a>
@@ -104,7 +158,7 @@ function editPage(item) {
     <p class="notice">Status: <strong>${item.status}</strong></p>
     <div class="actions">${controls}</div>
     <img class="editor-photo" src="/manage/photo/${item.id}?v=${item.version}" alt="${escapeHtml(item.title)}">
-    ${editor(item)}`, 200, true);
+    ${editor(item)}`, 200, { editor: true });
 }
 
 class ListingError extends Error {}
@@ -145,14 +199,16 @@ async function saveListing(db, form) {
   const id = getField(form, 'id');
   const version = Number(getField(form, 'version'));
   const { title, description, priceCents } = validateDetails(form);
+  const category = getField(form, 'category') || null;
+  if (category !== null && !Object.hasOwn(categories, category)) throw new ListingError('Choose a valid category.');
   const photo = await readPhoto(form);
   if (!id) {
     if (!photo) throw new ListingError('Choose a photo for the listing.');
     const newId = crypto.randomUUID();
     await db.prepare(`
-      INSERT INTO listings (id, title, description, price_cents, image_mime, image, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(newId, title, description, priceCents, photo.mime, photo.bytes, new Date().toISOString()).run();
+      INSERT INTO listings (id, title, description, price_cents, category, image_mime, image, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(newId, title, description, priceCents, category ?? 'other', photo.mime, photo.bytes, new Date().toISOString()).run();
     return redirect('/manage/item/' + newId);
   }
   if (!new RegExp(`^${itemId}$`).test(id) || !Number.isInteger(version) || version < 1) {
@@ -161,9 +217,9 @@ async function saveListing(db, form) {
   const photoFields = photo ? ', image_mime = ?, image = ?' : '';
   const values = photo ? [photo.mime, photo.bytes] : [];
   const result = await db.prepare(`
-    UPDATE listings SET title = ?, description = ?, price_cents = ?, updated_at = ?,
+    UPDATE listings SET title = ?, description = ?, price_cents = ?, category = COALESCE(?, category), updated_at = ?,
       version = version + 1 ${photoFields} WHERE id = ? AND version = ?
-  `).bind(title, description, priceCents, new Date().toISOString(), ...values, id, version).run();
+  `).bind(title, description, priceCents, category, new Date().toISOString(), ...values, id, version).run();
   if (!result.meta.changes) return staleListing();
   return redirect('/manage/item/' + id);
 }
@@ -208,19 +264,19 @@ export function createStore(isAdmin, { preview = false } = {}) {
         if (request.method === 'GET') {
           if (path === '/') {
             const { results } = await db.prepare(`
-              SELECT id, title, description, price_cents, status, version FROM listings
+              SELECT id, title, description, price_cents, status, version, category FROM listings
               WHERE status IN ('published', 'sold') ORDER BY status, updated_at DESC
             `).all();
-            return storefront(results);
+            return storefront(results, preview);
           }
           if (path === '/manage') {
-            const { results } = await db.prepare('SELECT id, title, price_cents, status FROM listings ORDER BY updated_at DESC').all();
+            const { results } = await db.prepare('SELECT id, title, price_cents, status, category FROM listings ORDER BY updated_at DESC').all();
             return manage(results, preview);
           }
-          if (path === '/manage/new') return page('New listing', '<a href="/manage">← All listings</a><h1>Add a find.</h1>' + editor(), 200, true);
+          if (path === '/manage/new') return page('New listing', '<a href="/manage">← All listings</a><h1>Add a find.</h1>' + editor(), 200, { editor: true });
           const item = path.match(new RegExp(`^/manage/item/(${itemId})$`));
           if (item) {
-            const record = await db.prepare('SELECT id, title, description, price_cents, status, version FROM listings WHERE id = ?').bind(item[1]).first();
+            const record = await db.prepare('SELECT id, title, description, price_cents, status, version, category FROM listings WHERE id = ?').bind(item[1]).first();
             return record ? editPage(record) : notFound();
           }
           const image = path.match(new RegExp(`^/(?:manage/)?photo/(${itemId})$`));

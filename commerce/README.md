@@ -1,6 +1,6 @@
 # Cherry Picked Chaos storefront
 
-This small store is separate from the public site. It uses a JavaScript Worker, a D1 database, and HTML forms. Melissa can add a title, condition, description, price, and photo. New listings start as drafts. Publish from the listing editor, take it off the shop, or mark it sold. A draft and its photo are available only in the editor.
+This small store is separate from the public site. It uses a JavaScript Worker, a D1 database, and HTML forms. Melissa can add a title, category, condition, description, price, and photo. New listings start as drafts. Publish from the listing editor, take it off the shop, or mark it sold. A draft and its photo are available only in the editor.
 
 ## Local preview
 
@@ -15,7 +15,7 @@ npm run preview
 - Shop: http://127.0.0.1:8004/
 - Editor: http://127.0.0.1:8004/manage
 
-The local editor is open for testing on loopback and uses a local database. Use the production Worker entry point when deploying. The local preview config is for development only.
+The local editor is open for testing on loopback and uses a local database. When it has no published or sold listings, the preview shows the four original sample finds so you can try the filters and Surprise Me. Use the production Worker entry point when deploying. The local preview config is for development only.
 
 ## Private online editor
 
