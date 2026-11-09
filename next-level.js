@@ -1,4 +1,51 @@
 // Small, independent enhancements. Core content and links work without JavaScript.
+function initPhotoGallery(track, toolbar) {
+  const count = toolbar.querySelector('.gallery-count');
+  const buttons = [...toolbar.querySelectorAll('[data-gallery-step]')];
+  const photos = [...track.children];
+  if (photos.length < 2) return;
+
+  function position() {
+    const visible = Number(getComputedStyle(track).getPropertyValue('--gallery-columns'));
+    const step = photos[1].offsetLeft - photos[0].offsetLeft;
+    const last = Math.max(0, photos.length - visible);
+    const first = step > 0 ? Math.min(last, Math.round(track.scrollLeft / step)) : 0;
+    return { visible, last, first };
+  }
+
+  function updateControls() {
+    const { visible, last, first } = position();
+    const text = visible === 1
+      ? `Photo ${first + 1} of ${photos.length}`
+      : `Photos ${first + 1}–${Math.min(first + visible, photos.length)} of ${photos.length}`;
+    if (count.textContent !== text) count.textContent = text;
+    buttons[0].setAttribute('aria-disabled', String(first === 0));
+    buttons[1].setAttribute('aria-disabled', String(first === last));
+  }
+
+  function moveTo(index) {
+    const { last } = position();
+    const target = photos[Math.min(last, Math.max(0, index))];
+    track.scrollTo({ left: target.offsetLeft, behavior: 'instant' });
+  }
+
+  buttons.forEach(button => button.addEventListener('click', () => {
+    moveTo(position().first + Number(button.dataset.galleryStep));
+  }));
+  track.addEventListener('keydown', event => {
+    const { first, last } = position();
+    const targets = { ArrowLeft: first - 1, ArrowRight: first + 1, Home: 0, End: last };
+    if (!Object.hasOwn(targets, event.key)) return;
+    event.preventDefault();
+    moveTo(targets[event.key]);
+  });
+  track.addEventListener('scroll', updateControls, { passive: true });
+  new ResizeObserver(updateControls).observe(track);
+  track.setAttribute('aria-describedby', 'gallery-hint');
+  toolbar.hidden = false;
+  updateControls();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   function updateTicket() {
     const state = window.CPC_SCHEDULE?.getState();
@@ -33,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (text) lines.push('Message:', text, '');
     if (wantsVIP) lines.push('Cherry Drops VIP signup requested: YES.', 'I consent to emails about shop news, finds, and opening dates. I can ask to leave the list anytime.');
     const subject = wantsVIP ? 'Hello + Cherry Drops VIP request' : 'Hello from the Cherry Picked Chaos website';
-    const href = 'mailto:cherrypickedchaos26@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join('\n'));
+    const href = form.getAttribute('action') + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join('\n'));
     const response = form.querySelector('.form-response');
     response.replaceChildren(document.createTextNode('Your email is ready. Review and send it in your email app.' + (wantsVIP ? ' Your VIP request is included; no automatic subscription has been created.' : '') + ' '));
     const retry = document.createElement('a');retry.href = href;retry.textContent = 'Open my prepared email →';
@@ -66,9 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
   addEventListener('scroll', parallax, {passive:true});
   wide.addEventListener('change', parallax); motion.addEventListener('change', parallax);
 
-  // Only populate with client-approved photos and descriptions. Empty by design.
-  // Keeping the illustrated fallback avoids implying sample imagery is current stock.
-  fetch('treasures.json').then(response => {
+  // Keep the illustrations as a fallback when approved photos can't be loaded.
+  fetch('treasures.json?v=shop-gallery-1').then(response => {
     if (!response.ok) throw new Error('Gallery unavailable');
     return response.json();
   }).then(data => {
@@ -80,17 +126,57 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!items.length) return;
     const gallery = document.getElementById('treasure-gallery');
     if (!gallery) return;
-    gallery.replaceChildren(); gallery.classList.add('real-treasures');
+    const toolbar = document.createElement('div');
+    toolbar.className = 'gallery-toolbar';
+    toolbar.hidden = true;
+    toolbar.innerHTML = `
+      <p class="gallery-hint" id="gallery-hint">Swipe or use the arrows to browse.</p>
+      <div class="gallery-controls">
+        <button type="button" data-gallery-step="-1" aria-label="Previous photo" aria-controls="shop-photos">←</button>
+        <span class="gallery-count" role="status"></span>
+        <button type="button" data-gallery-step="1" aria-label="Next photo" aria-controls="shop-photos">→</button>
+      </div>
+    `;
+    const track = document.createElement('ul');
+    track.className = 'gallery-track';
+    track.id = 'shop-photos';
+    track.tabIndex = 0;
+    track.setAttribute('role', 'list');
+    track.setAttribute('aria-label', 'Shop photos');
     for (const item of items) {
-      const card = document.createElement('figure');card.className = 'gallery-card';
-      const tag = document.createElement('span');tag.className = 'treasure-tag';tag.textContent = item.tag || 'Freshly Picked';
-      const image = document.createElement('img');image.src = item.image;image.alt = item.alt;image.loading = 'lazy';image.width = 600;image.height = 750;
+      const slide = document.createElement('li');
+      const card = document.createElement('figure');
+      card.className = 'gallery-card';
+      const image = document.createElement('img');
+      image.loading = 'lazy';
+      image.decoding = 'async';
+      image.alt = item.alt;
+      image.width = item.width || 600;
+      image.height = item.height || 750;
+      image.src = item.image;
       const caption = document.createElement('figcaption');
-      const title = document.createElement('strong');title.textContent = item.title;caption.append(title);
-      if (item.description) { const description = document.createElement('span');description.textContent = item.description;caption.append(description); }
-      card.append(tag, image, caption);gallery.append(card);
+      const title = document.createElement('strong');
+      title.textContent = item.title;
+      caption.append(title);
+      if (item.tag) {
+        const tag = document.createElement('span');
+        tag.className = 'treasure-tag';
+        tag.textContent = item.tag;
+        card.append(tag);
+      }
+      if (item.description) {
+        const description = document.createElement('span');
+        description.textContent = item.description;
+        caption.append(description);
+      }
+      card.append(image, caption);
+      slide.append(card);
+      track.append(slide);
     }
-    document.querySelector('.gallery-disclosure').textContent = 'A few client-approved finds from the shop. Ask us about availability before making a special trip.';
-    document.querySelector('.gallery-note').textContent = 'Something catch your eye? Call or text 713-446-4832. No online checkout or reservations.';
+    gallery.classList.replace('gallery-grid', 'real-treasures');
+    gallery.replaceChildren(toolbar, track);
+    initPhotoGallery(track, toolbar);
+    document.querySelector('.gallery-disclosure').textContent = 'Step inside and see what we’ve picked.';
+    document.querySelector('.gallery-note').textContent = 'A peek at past displays. Finds change as we pick.';
   }).catch(() => { /* Keep the clearly labeled illustration gallery. */ });
 });

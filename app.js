@@ -1,4 +1,4 @@
-// Shared navigation, legacy links, and the separate estate inquiry preview.
+// Shared navigation, legacy links, and the estate inquiry email handoff.
 document.addEventListener('DOMContentLoaded', () => {
   const opening = window.CPC_OPENING;
   if (opening) {
@@ -48,18 +48,29 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('click', e => {
     if (!e.target.closest('.site-header')) closeMenu();
   });
-  document.querySelectorAll('[data-preview-form]').forEach(form => {
+  const form = document.querySelector('[data-estate-email]');
+  if (form) {
     const response = form.querySelector('.form-response');
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const messages = {
-        contact: 'Your message preview looks good. Nothing was sent or saved — please email cherrypickedchaos26@gmail.com or call 713-446-4832 to reach us.',
-        signup: 'You’ve tried the Cherry Bombs signup! No subscription was created and no details were sent or saved. The mailing list is coming soon.',
-        estate: 'Your estate inquiry preview is ready. Nothing was sent or saved, and no visit or service was booked. Please call 713-446-4832 or email cherrypickedchaos26@gmail.com to discuss your inquiry.'
-      };
-      response.textContent = messages[form.dataset.previewForm] || 'Preview only — nothing was sent or saved.';
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const lines = [];
+      for (const [name, value] of new FormData(form)) {
+        if (!value.trim()) continue;
+        const field = form.elements.namedItem(name);
+        const label = field.labels[0].textContent;
+        const text = field.selectedOptions?.[0]?.textContent ?? value.trim();
+        lines.push(`${label}: ${text}`);
+      }
+      const subject = encodeURIComponent('Cherry Picked Chaos estate inquiry');
+      const body = encodeURIComponent(lines.join('\r\n\r\n'));
+      const href = `${form.getAttribute('action')}?subject=${subject}&body=${body}`;
+      const retry = document.createElement('a');
+      retry.href = href;
+      retry.textContent = 'Open my prepared email →';
+      response.replaceChildren('Review and send the draft from your email app. ', retry);
       response.hidden = false;
+      window.location.href = href;
     });
     form.addEventListener('input', () => { response.hidden = true; });
-  });
+  }
 });

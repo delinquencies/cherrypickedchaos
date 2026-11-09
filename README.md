@@ -2,6 +2,12 @@
 
 Static HTML, CSS, and JavaScript website. Open index.html through a local static server. No framework or build step is required.
 
+## Published gallery and inquiries
+
+Freshly Picked shows all 21 shop photos from the client's CHERRYPICKED PICS folder. Swipe or use the arrows on the gallery, or focus the photo strip and use Left, Right, Home, and End. The photos depict past displays.
+
+The Contact form, including optional Cherry Drops VIP requests, and the estate inquiry form prepare email drafts addressed to both owners. Visitors send the drafts from their own email app. The public shop inbox remains available as a direct contact link. This update supersedes the earlier gallery and form notes below.
+
 ## Current experience
 
 - Retro opening ticket with a countdown to the next confirmed retail session, Texas daylight-saving offsets, and a matching calendar file. opening.js owns the schedule; next-level.js refreshes the display every 30 seconds and on tab return. After April 17, 2027 at 5 pm Texas time, no new date is invented and the ticket calendar link disappears.

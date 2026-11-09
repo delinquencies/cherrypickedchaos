@@ -1,3 +1,172 @@
 {
-  "items": []
+  "items": [
+    {
+      "approved": true,
+      "image": "assets/shop-interior.webp",
+      "width": 1280,
+      "height": 960,
+      "alt": "Vintage furniture and display tables surround a pot of orange flowers",
+      "title": "A peek inside the shop"
+    },
+    {
+      "approved": true,
+      "image": "assets/pink-cabinet.webp",
+      "width": 660,
+      "height": 880,
+      "alt": "Pink cabinet topped with flowers and vintage pieces",
+      "title": "Pretty in pink"
+    },
+    {
+      "approved": true,
+      "image": "assets/vintage-tableware.webp",
+      "width": 660,
+      "height": 880,
+      "alt": "Vintage plates, bowls, and colorful glassware on a shop table",
+      "title": "Good dishes, good company"
+    },
+    {
+      "approved": true,
+      "image": "assets/window-frame-display.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A wooden display stand holding a framed print by the front window",
+      "title": "By the front window"
+    },
+    {
+      "approved": true,
+      "image": "assets/pottery-hutch.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "Wooden hutch packed with pottery, pitchers, cups, and bowls",
+      "title": "Shelves full of stories"
+    },
+    {
+      "approved": true,
+      "image": "assets/tabletop-finds.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "Stacks of plates, colorful bowls, and small vintage pieces on a dark table",
+      "title": "A table full of treasures"
+    },
+    {
+      "approved": true,
+      "image": "assets/shop-corner.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A small round display table between a wooden hutch and a pink cabinet",
+      "title": "Around the corner"
+    },
+    {
+      "approved": true,
+      "image": "assets/farmhouse-table.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A cream farmhouse table with pottery and small pieces arranged on and beneath it",
+      "title": "Gather round"
+    },
+    {
+      "approved": true,
+      "image": "assets/jewelry-display.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "Jewelry and small collectibles arranged on a wooden tabletop",
+      "title": "Little bits of sparkle"
+    },
+    {
+      "approved": true,
+      "image": "assets/stool-and-crock.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A crock on a wooden stool in front of the shop window",
+      "title": "A sunny little spot"
+    },
+    {
+      "approved": true,
+      "image": "assets/window-flowers.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "White flowers and a wooden chair in a window display",
+      "title": "In the window"
+    },
+    {
+      "approved": true,
+      "image": "assets/woven-basket.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "An oval woven basket with two handles and a tag",
+      "title": "The sweetest little basket"
+    },
+    {
+      "approved": true,
+      "image": "assets/window-vase.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "Green stems in a tall vase on a table by the shop window",
+      "title": "Light from Main Street"
+    },
+    {
+      "approved": true,
+      "image": "assets/red-display-cabinet.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A red glass-front cabinet beside a display with holiday decorations",
+      "title": "A pop of red"
+    },
+    {
+      "approved": true,
+      "image": "assets/holiday-display.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "Holiday decorations and wreaths surrounding a dark cabinet with a yellow bow",
+      "title": "Dressed for the holidays"
+    },
+    {
+      "approved": true,
+      "image": "assets/back-room-display.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A shop room with seasonal displays on tables and shelves",
+      "title": "More to discover"
+    },
+    {
+      "approved": true,
+      "image": "assets/wooden-display-shelf.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "Tall wooden shelving filled with small vintage pieces and decorations",
+      "title": "Look a little closer"
+    },
+    {
+      "approved": true,
+      "image": "assets/shop-doorway.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A doorway looking into a room of vintage displays",
+      "title": "Just through the doorway"
+    },
+    {
+      "approved": true,
+      "image": "assets/doll-and-crochet.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A doll in red and white above a green crocheted decoration",
+      "title": "A little holiday whimsy"
+    },
+    {
+      "approved": true,
+      "image": "assets/angel-doll.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "A blonde angel doll in a cream dress with wings",
+      "title": "An angel in the mix"
+    },
+    {
+      "approved": true,
+      "image": "assets/painted-decor.webp",
+      "width": 675,
+      "height": 900,
+      "alt": "Colorful painted pieces with heart motifs on a blue tabletop",
+      "title": "Hand-painted charm"
+    }
+  ]
 }
