@@ -49,7 +49,7 @@ function escapeHtml(value) {
   })[character]);
 }
 
-function page(title, content, status = 200, { editor = false, shop = false, demoBag = false } = {}) {
+function page(title, content, status = 200, { editor = false, shop = false, showBag = false } = {}) {
   return new Response(`<!doctype html>
 <html lang="en">
 <head>
@@ -72,7 +72,7 @@ function page(title, content, status = 200, { editor = false, shop = false, demo
       </a>
       <div class="header-actions">
         <a class="header-link" href="${shop ? 'https://www.cherrypickedchaos.com/' : '/'}">${shop ? '← Back to the main site' : 'View shop ↗'}</a>
-        ${demoBag ? '<button class="bag-toggle" type="button" aria-haspopup="dialog" aria-controls="demo-bag" hidden>Bag <span class="bag-count">0</span></button>' : ''}
+        ${showBag ? '<button class="bag-toggle" type="button" aria-haspopup="dialog" aria-controls="shop-bag" hidden>Bag <span class="bag-count">0</span></button>' : ''}
       </div>
     </div>
   </header>
@@ -110,20 +110,21 @@ function shippingControl(item, id, ratesAvailable) {
   </details>`;
 }
 
-function demoBagDrawer(showSamples) {
-  return `<dialog class="bag-drawer" id="demo-bag" aria-labelledby="bag-title" aria-describedby="bag-note" data-storage-key="${showSamples ? 'cpc-demo-bag' : 'cpc-preview-listing-bag'}">
+function bagDrawer(preview, showSamples) {
+  const storageKey = showSamples ? 'cpc-demo-bag' : preview ? 'cpc-preview-listing-bag' : 'cpc-shop-bag';
+  return `<dialog class="bag-drawer" id="shop-bag" aria-labelledby="bag-title" aria-describedby="bag-note" data-storage-key="${storageKey}">
     <div class="bag-heading">
-      <h2 id="bag-title">Demo Bag ♥</h2>
-      <form method="dialog"><button class="bag-close" type="submit" aria-label="Close demo bag" autofocus>✕</button></form>
+      <h2 id="bag-title">${preview ? 'Demo Bag' : 'Your Bag'} ♥</h2>
+      <form method="dialog"><button class="bag-close" type="submit" aria-label="Close bag" autofocus>✕</button></form>
     </div>
-    <p class="hint" id="bag-note">Preview only. Adding a find doesn’t reserve it or place an order.</p>
+    <p class="hint" id="bag-note">${preview ? 'Preview only. ' : ''}Adding a find doesn’t reserve it or place an order.</p>
     <p class="bag-empty">A little empty in here! Find a treasure to tuck away.</p>
-    <ul class="bag-items" aria-label="Finds in your demo bag"></ul>
+    <ul class="bag-items" aria-label="Finds in your bag"></ul>
     <p class="bag-subtotal"><span>Item subtotal</span><strong>$0.00</strong></p>
     <div class="bag-actions">
       <form action="/checkout" method="get" class="bag-checkout" hidden>
         <input type="hidden" name="items">
-        <button type="submit">Checkout</button>
+        <button type="submit">${preview ? 'Checkout' : 'View order summary'}</button>
       </form>
       <form method="dialog"><button class="continue-shopping" type="submit">Continue shopping</button></form>
     </div>
@@ -134,7 +135,7 @@ function storefront(items, preview, ratesAvailable) {
   const showSamples = preview && items.length === 0;
   const finds = showSamples ? sampleFinds : items;
   const listedCategories = new Set(finds.map(item => item.category));
-  const demoBag = preview && finds.some(item => item.status !== 'sold');
+  const showBag = !preview || finds.some(item => item.status !== 'sold');
   const cards = finds.map(item => {
     const id = showSamples ? 'sample-' + item.image : item.id;
     return `
@@ -148,7 +149,7 @@ function storefront(items, preview, ratesAvailable) {
         <h2>${escapeHtml(item.title)}</h2>
         <p class="description">${escapeHtml(item.description)}</p>
         <p class="price">${currency.format(item.price_cents / 100)}${showSamples ? '<small>Illustrative price</small>' : ''}</p>
-        ${demoBag && item.status !== 'sold' ? `<button class="bag-add" type="button" data-bag-item="${showSamples ? item.image : id}" data-price-cents="${item.price_cents}" hidden>Add to demo bag</button>` : ''}
+        ${item.status !== 'sold' ? `<button class="bag-add" type="button" data-bag-item="${showSamples ? item.image : id}" data-price-cents="${item.price_cents}" hidden>${preview ? 'Add to demo bag' : 'Add to bag'}</button>` : ''}
         ${shippingControl(item, id, ratesAvailable)}
       </div>
     </article>`;
@@ -178,7 +179,7 @@ function storefront(items, preview, ratesAvailable) {
         <div class="grid">${cards}</div>
         <p class="empty-category" role="status" hidden>No finds in this category yet.</p>` : '<p>No finds have been published yet.</p>'}
     </section>
-    ${demoBag ? demoBagDrawer(showSamples) : ''}`, 200, { shop: true, demoBag });
+    ${showBag ? bagDrawer(preview, showSamples) : ''}`, 200, { shop: true, showBag });
 }
 
 function editor(item = null) {
@@ -385,35 +386,39 @@ async function quoteShipping(items, zip, env, mode) {
   }
 }
 
-async function demoCheckout(env, params) {
+async function checkoutSummary(env, params, preview) {
   const listings = await shopListings(env.STORE_DB);
-  const finds = listings.length ? listings.filter(item => item.status === 'published') : sampleFinds;
+  const finds = preview && !listings.length ? sampleFinds : listings.filter(item => item.status === 'published');
   const available = new Map(finds.map(item => [item.id ?? item.image, item]));
   const ids = [...new Set((params.get('items') ?? '').split(',').filter(Boolean))];
   const items = ids.map(id => available.get(id)).filter(Boolean);
   const back = '<a href="/">← Back to the shop</a>';
-  const heading = `${back}<h1>Demo checkout.</h1>`;
+  const title = preview ? 'Demo checkout' : 'Order summary';
+  const heading = `${back}<h1>${title}.</h1>`;
   if (!items.length || items.length !== ids.length) {
-    return page('Demo checkout', `${heading}<p>${ids.length ? 'A find in your bag is no longer available. Return to the shop to review your bag.' : 'Add a find to your demo bag to try checkout.'}</p>`);
+    return page(title, `${heading}<p>${ids.length ? 'A find in your bag is no longer available. Return to the shop to review your bag.' : 'Add a find to your bag to see its order summary.'}</p>`);
   }
 
   const canShip = items.every(item => item.ship_weight_lb);
   const zip = params.get('zip')?.trim() ?? '';
   const wantsShipping = canShip && params.has('zip');
-  const mode = shippingRateMode(env, true);
-  const quote = wantsShipping && validShippingZip(zip) ? await quoteShipping(items, zip, env, mode) : null;
+  const mode = shippingRateMode(env, preview);
+  const quote = mode && wantsShipping && validShippingZip(zip) ? await quoteShipping(items, zip, env, mode) : null;
+  const shippingLabel = mode === 'example' ? 'Example shipping' : mode === 'test' ? 'Shippo test shipping' : 'Estimated shipping';
+  const shippingHint = mode === 'example' ? 'The demo uses example postage for each packed box.' :
+    mode === 'test' ? 'Shippo test rates are estimated for each packed box.' : 'Shipping is estimated for each packed box.';
   const hasQuote = quote?.cents != null;
   const postage = quote?.cents ?? 0;
   const subtotal = items.reduce((sum, item) => sum + item.price_cents, 0);
   const pickupUrl = '/checkout?items=' + encodeURIComponent(ids.join(','));
 
-  return page('Demo checkout', `${heading}
-    <p class="notice">Preview only. Payments and orders open when the shop goes live.</p>
+  return page(title, `${heading}
+    <p class="notice">Online orders and payments are coming soon. This is an estimate.</p>
     <div class="checkout-grid">
       <section class="quote-panel" aria-labelledby="delivery-title">
         <h2 id="delivery-title">Pickup or shipping</h2>
         <p>${hasQuote ? `U.S. shipping to ${zip} selected. <a href="${pickupUrl}">Switch to local pickup</a>` : 'Free local pickup in Schulenburg, Texas.'}</p>
-        ${canShip ? `<form class="checkout-shipping" action="/checkout" method="get">
+        ${canShip && mode ? `<form class="checkout-shipping" action="/checkout" method="get">
           <input type="hidden" name="items" value="${escapeHtml(ids.join(','))}">
           <label for="checkout-zip">Delivery ZIP code</label>
           <div class="shipping-row">
@@ -422,17 +427,16 @@ async function demoCheckout(env, params) {
           </div>
           ${wantsShipping && !hasQuote ? `<p role="alert">${quote?.message ?? 'Enter a five-digit U.S. ZIP code.'}</p>` : ''}
         </form>
-        <p class="hint">${mode === 'test' ? 'Shippo test rates are estimated for each packed box.' : 'The demo uses example postage for each packed box.'}</p>` : '<p class="hint">Your bag includes a pickup-only find. To estimate shipping, return to the shop and remove any pickup-only finds from your bag.</p>'}
+        <p class="hint">${shippingHint}</p>` : canShip ? '<p class="hint">U.S. shipping estimates are coming soon.</p>' : '<p class="hint">Your bag includes a pickup-only find. To estimate shipping, return to the shop and remove any pickup-only finds from your bag.</p>'}
       </section>
       <section class="quote-panel" aria-labelledby="summary-title">
         <h2 id="summary-title">Order summary</h2>
         <ul class="checkout-items">${items.map(item => `<li><span>${escapeHtml(item.title)}</span><strong>${currency.format(item.price_cents / 100)}</strong></li>`).join('')}</ul>
         <dl class="checkout-totals">
           <div><dt>Item subtotal</dt><dd>${currency.format(subtotal / 100)}</dd></div>
-          <div><dt>${hasQuote ? (mode === 'test' ? 'Shippo test shipping' : 'Example shipping') : 'Local pickup'}</dt><dd>${currency.format(postage / 100)}</dd></div>
+          <div><dt>${hasQuote ? shippingLabel : 'Local pickup'}</dt><dd>${currency.format(postage / 100)}</dd></div>
           <div class="price"><dt>Estimated total before tax</dt><dd>${currency.format((subtotal + postage) / 100)}</dd></div>
         </dl>
-        <p class="hint">Square payment will be available at launch.</p>
       </section>
     </div>`, quote?.status ?? 200);
 }
@@ -482,7 +486,7 @@ export function createStore(isAdmin, { preview = false } = {}) {
           if (path === '/') {
             return storefront(await shopListings(db), preview, Boolean(shippingRateMode(env, preview)));
           }
-          if (path === '/checkout' && preview) return await demoCheckout(env, url.searchParams);
+          if (path === '/checkout') return await checkoutSummary(env, url.searchParams, preview);
           const shipping = path.match(/^\/shipping\/([a-z0-9-]+)$/);
           if (shipping) return await shippingEstimate(shipping[1], url.searchParams.get('zip') ?? '', env, preview);
           if (path === '/manage') {
