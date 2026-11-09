@@ -29,7 +29,7 @@ export async function shippingCents(item, zip, env) {
       }],
       async: false
     }),
-    redirect: 'error',
+    redirect: 'manual',
     signal: AbortSignal.timeout(8000)
   });
   if (response.status === 400 || response.status === 422) return null;
