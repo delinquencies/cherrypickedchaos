@@ -44,6 +44,8 @@ if (drawer && typeof drawer.showModal === 'function') {
   const list = drawer.querySelector('.bag-items');
   const empty = drawer.querySelector('.bag-empty');
   const subtotal = drawer.querySelector('.bag-subtotal strong');
+  const checkout = drawer.querySelector('.bag-checkout');
+  const checkoutItems = checkout.elements.namedItem('items');
   const addButtons = [...document.querySelectorAll('.bag-add')];
   const products = new Map(addButtons.map(add => [add.dataset.bagItem, add]));
   const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -67,6 +69,8 @@ if (drawer && typeof drawer.showModal === 'function') {
   function renderBag() {
     count.textContent = bag.size;
     empty.hidden = bag.size > 0;
+    checkout.hidden = bag.size === 0;
+    checkoutItems.value = [...bag].join(',');
     let cents = 0;
     const rows = [...bag].map((id, index) => {
       const add = products.get(id);

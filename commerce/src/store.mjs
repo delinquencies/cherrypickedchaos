@@ -10,6 +10,7 @@ const packageFields = [
   ['ship_height_in', 'Box height (in)', 1, 108]
 ];
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const demoShippingCents = 1250;
 const categories = {
   wear: 'Vintage Wear',
   stoneware: 'Stoneware',
@@ -120,7 +121,13 @@ function demoBagDrawer(showSamples) {
     <p class="bag-empty">A little empty in here! Find a treasure to tuck away.</p>
     <ul class="bag-items" aria-label="Finds in your demo bag"></ul>
     <p class="bag-subtotal"><span>Item subtotal</span><strong>$0.00</strong></p>
-    <form method="dialog"><button type="submit">Continue shopping</button></form>
+    <div class="bag-actions">
+      <form action="/checkout" method="get" class="bag-checkout" hidden>
+        <input type="hidden" name="items">
+        <button type="submit">Checkout</button>
+      </form>
+      <form method="dialog"><button class="continue-shopping" type="submit">Continue shopping</button></form>
+    </div>
   </dialog>`;
 }
 
@@ -353,6 +360,68 @@ function notFound() {
   return page('Page not found', '<h1>This page wandered off.</h1><a href="/">Back to the shop →</a>', 404);
 }
 
+async function shopListings(db) {
+  const { results } = await db.prepare(`
+    SELECT id, title, description, price_cents, status, version, category, ${packageColumns} FROM listings
+    WHERE status IN ('published', 'sold') ORDER BY status, updated_at DESC
+  `).all();
+  return results;
+}
+
+function validShippingZip(zip) {
+  return /^\d{5}$/.test(zip) && zip !== '00000';
+}
+
+async function demoCheckout(db, params) {
+  const listings = await shopListings(db);
+  const finds = listings.length ? listings.filter(item => item.status === 'published') : sampleFinds;
+  const available = new Map(finds.map(item => [item.id ?? item.image, item]));
+  const ids = [...new Set((params.get('items') ?? '').split(',').filter(Boolean))];
+  const items = ids.map(id => available.get(id)).filter(Boolean);
+  const back = '<a href="/">← Back to the shop</a>';
+  const heading = `${back}<h1>Demo checkout.</h1>`;
+  if (!items.length || items.length !== ids.length) {
+    return page('Demo checkout', `${heading}<p>${ids.length ? 'A find in your bag is no longer available. Return to the shop to review your bag.' : 'Add a find to your demo bag to try checkout.'}</p>`);
+  }
+
+  const canShip = items.every(item => item.ship_weight_lb);
+  const zip = params.get('zip')?.trim() ?? '';
+  const wantsShipping = canShip && params.has('zip');
+  const hasQuote = wantsShipping && validShippingZip(zip);
+  const postage = hasQuote ? demoShippingCents * items.length : 0;
+  const subtotal = items.reduce((sum, item) => sum + item.price_cents, 0);
+  const pickupUrl = '/checkout?items=' + encodeURIComponent(ids.join(','));
+
+  return page('Demo checkout', `${heading}
+    <p class="notice">Preview only. Payments and orders open when the shop goes live.</p>
+    <div class="checkout-grid">
+      <section class="quote-panel" aria-labelledby="delivery-title">
+        <h2 id="delivery-title">Pickup or shipping</h2>
+        <p>${hasQuote ? `U.S. shipping to ${zip} selected. <a href="${pickupUrl}">Switch to local pickup</a>` : 'Free local pickup in Schulenburg, Texas.'}</p>
+        ${canShip ? `<form class="checkout-shipping" action="/checkout" method="get">
+          <input type="hidden" name="items" value="${escapeHtml(ids.join(','))}">
+          <label for="checkout-zip">Delivery ZIP code</label>
+          <div class="shipping-row">
+            <input id="checkout-zip" name="zip" type="text" inputmode="numeric" autocomplete="shipping postal-code" pattern="[0-9]{5}" maxlength="5" value="${escapeHtml(zip.slice(0, 20))}" required>
+            <button type="submit">Calculate shipping</button>
+          </div>
+          ${wantsShipping && !hasQuote ? '<p role="alert">Enter a five-digit U.S. ZIP code.</p>' : ''}
+        </form>
+        <p class="hint">The demo uses example postage for each packed box.</p>` : '<p class="hint">Your bag includes a pickup-only find. To estimate shipping, return to the shop and remove any pickup-only finds from your bag.</p>'}
+      </section>
+      <section class="quote-panel" aria-labelledby="summary-title">
+        <h2 id="summary-title">Order summary</h2>
+        <ul class="checkout-items">${items.map(item => `<li><span>${escapeHtml(item.title)}</span><strong>${currency.format(item.price_cents / 100)}</strong></li>`).join('')}</ul>
+        <dl class="checkout-totals">
+          <div><dt>Item subtotal</dt><dd>${currency.format(subtotal / 100)}</dd></div>
+          <div><dt>${hasQuote ? 'Example shipping' : 'Local pickup'}</dt><dd>${currency.format(postage / 100)}</dd></div>
+          <div class="price"><dt>Estimated total before tax</dt><dd>${currency.format((subtotal + postage) / 100)}</dd></div>
+        </dl>
+        <p class="hint">Square payment will be available at launch.</p>
+      </section>
+    </div>`);
+}
+
 async function shippingEstimate(id, zip, env, preview) {
   const sample = preview && sampleFinds.find(find => id === 'sample-' + find.image);
   const item = sample || (new RegExp(`^${itemId}$`).test(id) && await env.STORE_DB.prepare(`
@@ -361,12 +430,12 @@ async function shippingEstimate(id, zip, env, preview) {
   if (!item?.ship_weight_lb) return notFound();
 
   const back = `<a href="/#find-${id}">← Back to this find</a>`;
-  if (!/^\d{5}$/.test(zip) || zip === '00000') {
+  if (!validShippingZip(zip)) {
     return page('Check the delivery ZIP', `${back}<h1>Check the delivery ZIP.</h1><p>Enter a five-digit U.S. ZIP code.</p>`, 400);
   }
 
   const sampleRate = preview && !hasLiveShipping(env);
-  let cents = sampleRate ? 1250 : null;
+  let cents = sampleRate ? demoShippingCents : null;
   let status = 200;
   let message = 'A rate is unavailable for this ZIP and package. Check the ZIP code or choose local pickup.';
   if (hasLiveShipping(env)) {
@@ -408,12 +477,9 @@ export function createStore(isAdmin, { preview = false } = {}) {
 
         if (request.method === 'GET') {
           if (path === '/') {
-            const { results } = await db.prepare(`
-              SELECT id, title, description, price_cents, status, version, category, ${packageColumns} FROM listings
-              WHERE status IN ('published', 'sold') ORDER BY status, updated_at DESC
-            `).all();
-            return storefront(results, preview, preview || hasLiveShipping(env));
+            return storefront(await shopListings(db), preview, preview || hasLiveShipping(env));
           }
+          if (path === '/checkout' && preview) return await demoCheckout(db, url.searchParams);
           const shipping = path.match(/^\/shipping\/([a-z0-9-]+)$/);
           if (shipping) return await shippingEstimate(shipping[1], url.searchParams.get('zip') ?? '', env, preview);
           if (path === '/manage') {

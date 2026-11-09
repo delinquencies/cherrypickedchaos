@@ -25,7 +25,7 @@ The local editor is open for testing on loopback and uses a local database. When
 
 ## Checkout before launch
 
-The current storefront is a preview for managing listings. Once the shop has Square Sandbox access, add single-item checkout with Square-hosted card fields. The server should price from the listing, re-quote shipping from the delivery address if selected, atomically hold the item, and use a stable idempotency key for the payment. Verify Square's completed payment and match it to the order before recording the sale and notifying both owners. Keep holds pending while the payment outcome is uncertain. Confirm declines, duplicate attempts, concurrent buyers, refunds, and the two owner notifications in Sandbox before enabling real charges. Configure the production Square credentials as Worker secrets. No checkout or sale alerts are enabled in this preview.
+The demo bag opens a local checkout preview with pickup, an example shipping estimate when all items can ship, and an order summary. The preview does not place orders or collect payment details. Once the shop has Square Sandbox access, add single-item checkout with Square-hosted card fields. The server should price from the listing, re-quote shipping from the delivery address if selected, atomically hold the item, and use a stable idempotency key for the payment. Verify Square's completed payment and match it to the order before recording the sale and notifying both owners. Keep holds pending while the payment outcome is uncertain. Confirm declines, duplicate attempts, concurrent buyers, refunds, and the two owner notifications in Sandbox before enabling real charges. Configure the production Square credentials as Worker secrets.
 
 ## U.S. shipping estimates
 

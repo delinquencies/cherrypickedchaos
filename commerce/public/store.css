@@ -164,6 +164,8 @@ body:has(.bag-drawer[open]) { overflow: hidden; }
 .bag-items h3 { margin: 0; font-size: .9rem; overflow-wrap: anywhere; }
 .bag-items button { padding: 0 8px 0 0; background: transparent; color: var(--cherry); font-size: .84rem; text-decoration: underline; }
 .bag-subtotal { display: flex; justify-content: space-between; gap: 10px; margin-block: 20px; font-weight: 800; }
+.bag-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.continue-shopping { border: 1px solid var(--cherry); background: var(--paper); color: var(--cherry); }
 .bag-empty { padding: 20px 0; text-align: center; font: italic 800 1.1rem var(--serif); }
 .bag-empty::before { content: ''; display: block; width: 54px; height: 54px; margin: 0 auto 12px; background: url('/brand/cherries.svg') center / contain no-repeat; }
 @media (prefers-reduced-motion: no-preference) {
@@ -199,6 +201,15 @@ body:has(.bag-drawer[open]) { overflow: hidden; }
 }
 .editor, .quote-panel { padding: 20px; margin: 18px 0; }
 .quote-panel h2 { margin-top: 0; }
+.checkout-shipping label { display: block; margin-bottom: 5px; font-weight: 750; }
+.checkout-items { margin: 0; padding: 0; list-style: none; }
+.checkout-items li, .checkout-totals div { display: flex; justify-content: space-between; gap: 12px; padding-block: 6px; }
+.checkout-items span { overflow-wrap: anywhere; }
+.checkout-totals { border-top: 1px dashed var(--line); padding-top: 8px; }
+.checkout-totals dd { margin: 0; }
+@media (min-width: 720px) {
+  .checkout-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+}
 .editor label { display: grid; gap: 4px; margin-bottom: 16px; font-weight: 750; }
 .editor input, .editor textarea, .editor select, .shipping-row input { min-width: 0; width: 100%; padding: 10px; font: inherit; color: var(--ink); border: 1px solid #876f65; border-radius: 8px; background: white; }
 .package-fields { min-inline-size: 0; margin: 0 0 16px; padding: 0 12px; border: 1px dashed #b94761; border-radius: 10px; }
