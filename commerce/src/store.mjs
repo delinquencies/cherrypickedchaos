@@ -21,6 +21,7 @@ const categories = {
   toys: 'Toys',
   kitchenware: 'Kitchenware',
   gadgets: 'Gadgets',
+  gifts: 'Gifts',
   oddities: 'Oddities',
   seasonal: 'Seasonal',
   glassware: 'Glassware',
@@ -127,6 +128,7 @@ function demoBagDrawer(showSamples) {
 function storefront(items, preview, ratesAvailable) {
   const showSamples = preview && items.length === 0;
   const finds = showSamples ? sampleFinds : items;
+  const listedCategories = new Set(finds.map(item => item.category));
   const demoBag = preview && finds.some(item => item.status !== 'sold');
   const cards = finds.map(item => {
     const id = showSamples ? 'sample-' + item.image : item.id;
@@ -147,6 +149,7 @@ function storefront(items, preview, ratesAvailable) {
     </article>`;
   }).join('');
   const filters = categoriesByName
+    .filter(([category]) => listedCategories.has(category))
     .map(([category, label]) => `<button type="button" data-filter="${category}" aria-pressed="false">${escapeHtml(label)}</button>`).join('');
   return page('Shop Selected Finds', `
     <section class="shop-hero">
