@@ -18,3 +18,8 @@ ACCESS_AUDIENCE = "REPLACE_WITH_ACCESS_APPLICATION_AUD"
 binding = "STORE_DB"
 database_name = "cherry-picked-chaos-store"
 database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[ratelimits]]
+name = "SHIPPING_RATE_LIMIT"
+namespace_id = "7895601"
+simple = { limit = 6, period = 60 }

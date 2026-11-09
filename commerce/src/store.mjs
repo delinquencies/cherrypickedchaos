@@ -372,10 +372,14 @@ function validShippingZip(zip) {
   return /^\d{5}$/.test(zip) && zip !== '00000';
 }
 
-async function quoteShipping(items, zip, env, mode) {
+async function quoteShipping(items, zip, env, mode, clientIp) {
   if (mode === 'example') return { cents: demoShippingCents * items.length, status: 200 };
   if (!mode) return { cents: null, status: 503, message: 'U.S. shipping rates are coming soon. Local pickup is available.' };
+  if (items.length > 10) return { cents: null, status: 400, message: 'Estimate shipping for up to 10 finds at a time.' };
   try {
+    if (mode === 'live' && !(await env.SHIPPING_RATE_LIMIT.limit({ key: clientIp })).success) {
+      return { cents: null, status: 429, message: 'Too many shipping estimates. Try again in a minute.' };
+    }
     const prices = await Promise.all(items.map(item => shippingCents(item, zip, env)));
     if (prices.every(price => price !== null)) {
       return { cents: prices.reduce((total, price) => total + price, 0), status: 200 };
@@ -386,7 +390,7 @@ async function quoteShipping(items, zip, env, mode) {
   }
 }
 
-async function checkoutSummary(env, params, preview) {
+async function checkoutSummary(env, params, preview, clientIp) {
   const listings = await shopListings(env.STORE_DB);
   const finds = preview && !listings.length ? sampleFinds : listings.filter(item => item.status === 'published');
   const available = new Map(finds.map(item => [item.id ?? item.image, item]));
@@ -403,7 +407,7 @@ async function checkoutSummary(env, params, preview) {
   const zip = params.get('zip')?.trim() ?? '';
   const wantsShipping = canShip && params.has('zip');
   const mode = shippingRateMode(env, preview);
-  const quote = mode && wantsShipping && validShippingZip(zip) ? await quoteShipping(items, zip, env, mode) : null;
+  const quote = mode && wantsShipping && validShippingZip(zip) ? await quoteShipping(items, zip, env, mode, clientIp) : null;
   const shippingLabel = mode === 'example' ? 'Example shipping' : mode === 'test' ? 'Shippo test shipping' : 'Estimated shipping';
   const shippingHint = mode === 'example' ? 'The demo uses example postage for each packed box.' :
     mode === 'test' ? 'Shippo test rates are estimated for each packed box.' : 'Shipping is estimated for each packed box.';
@@ -441,7 +445,7 @@ async function checkoutSummary(env, params, preview) {
     </div>`, quote?.status ?? 200);
 }
 
-async function shippingEstimate(id, zip, env, preview) {
+async function shippingEstimate(id, zip, env, preview, clientIp) {
   const sample = preview && sampleFinds.find(find => id === 'sample-' + find.image);
   const item = sample || (new RegExp(`^${itemId}$`).test(id) && await env.STORE_DB.prepare(`
     SELECT title, ${packageColumns} FROM listings WHERE id = ? AND status = 'published'
@@ -454,7 +458,7 @@ async function shippingEstimate(id, zip, env, preview) {
   }
 
   const mode = shippingRateMode(env, preview);
-  const { cents, status, message } = await quoteShipping([item], zip, env, mode);
+  const { cents, status, message } = await quoteShipping([item], zip, env, mode, clientIp);
 
   return page('Shipping estimate', `
     ${back}
@@ -486,9 +490,10 @@ export function createStore(isAdmin, { preview = false } = {}) {
           if (path === '/') {
             return storefront(await shopListings(db), preview, Boolean(shippingRateMode(env, preview)));
           }
-          if (path === '/checkout') return await checkoutSummary(env, url.searchParams, preview);
+          const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+          if (path === '/checkout') return await checkoutSummary(env, url.searchParams, preview, clientIp);
           const shipping = path.match(/^\/shipping\/([a-z0-9-]+)$/);
-          if (shipping) return await shippingEstimate(shipping[1], url.searchParams.get('zip') ?? '', env, preview);
+          if (shipping) return await shippingEstimate(shipping[1], url.searchParams.get('zip') ?? '', env, preview, clientIp);
           if (path === '/manage') {
             const { results } = await db.prepare('SELECT id, title, price_cents, status, category FROM listings ORDER BY updated_at DESC').all();
             return manage(results, preview);

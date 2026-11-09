@@ -5,7 +5,7 @@ export function shippingRateMode(env, preview) {
   const token = env.SHIPPO_API_TOKEN?.trim();
   const testToken = token?.startsWith('shippo_test_');
   if (preview) return testToken ? 'test' : 'example';
-  return token && !testToken ? 'live' : null;
+  return token?.startsWith('shippo_live_') && env.SHIPPING_RATE_LIMIT ? 'live' : null;
 }
 
 export async function shippingCents(item, zip, env) {
