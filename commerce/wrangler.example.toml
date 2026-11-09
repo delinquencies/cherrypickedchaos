@@ -9,6 +9,7 @@ directory = "./public"
 binding = "ASSETS"
 
 [vars]
+# Match the Cloudflare Access allowlist. Separate multiple email addresses with commas.
 STORE_ADMIN_EMAIL = "mdbarton81@gmail.com"
 ACCESS_ISSUER = "https://YOUR-TEAM.cloudflareaccess.com"
 ACCESS_AUDIENCE = "REPLACE_WITH_ACCESS_APPLICATION_AUD"

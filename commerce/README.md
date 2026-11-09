@@ -20,8 +20,8 @@ The local editor is open for testing on loopback and uses a local database. When
 ## Private online editor
 
 1. Pick a shop hostname in the account that hosts the domain. Create a D1 database and copy `wrangler.example.toml` to `wrangler.toml`. Use the example's production entry point, `src/worker.mjs`, and attach the shop hostname as a Worker custom domain.
-2. In Cloudflare Access, set up a self-hosted application covering `/manage` and its subpaths. Enable one-time PIN or the owners' identity provider and allow only `mdbarton81@gmail.com`. Copy the Access application audience, team issuer, and D1 database ID into the configuration.
-3. Apply the production migration and deploy the Worker. Verify the editor and its write endpoints deny signed-out and unapproved users, then verify Melissa can sign in, publish a test listing, and take it offline. The Worker validates the Access signature, audience, expiration, and approved email on each private request.
+2. In Cloudflare Access, set up a self-hosted application covering `/manage` and its subpaths. Enable one-time PIN or the owners' identity provider and allow only the approved shop editors. Set `STORE_ADMIN_EMAIL` to the same email addresses, separated by commas. Copy the Access application audience, team issuer, and D1 database ID into the configuration.
+3. Apply the production migration and deploy the Worker. Verify the editor and its write endpoints deny signed-out and unapproved users, then verify each editor can sign in and that an editor can publish a test listing and take it offline. The Worker validates the Access signature, audience, expiration, and approved email on each private request.
 
 ## Checkout before launch
 
