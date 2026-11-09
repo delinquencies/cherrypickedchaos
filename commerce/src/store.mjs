@@ -529,12 +529,20 @@ async function handleLiveOrder(request, env, url) {
 
 async function manageOrders(db) {
   const { results } = await db.prepare("SELECT * FROM live_orders WHERE state <> 'canceled' ORDER BY COALESCE(paid_at, '') DESC, expires_at DESC LIMIT 100").all();
-  const rows = results.map(order => `<li><div><strong>${escapeHtml(order.title)}</strong> · ${order.state}
+  const rows = results.map(order => {
+    const label = order.state !== 'paid' ? order.state : order.refunded_cents ? 'Refunded or partially refunded' :
+      !order.shipping_address ? 'Paid · Awaiting pickup' : order.shippo_state === 'sent' ? 'Paid · Sent to Shippo for labeling' :
+      order.shippo_state || !order.shipping_package ? 'Paid · Check Shippo before buying a label' : 'Paid · Sending to Shippo';
+    const box = order.shipping_package && JSON.parse(order.shipping_package);
+    return `<li id="order-${order.id}"><div><strong>${escapeHtml(order.title)}</strong> · ${label}
     <br>${escapeHtml(order.customer_name ?? '')} · ${orderShippingLabel(order)}
+    ${box ? `<br>Packed box: ${box.weight} lb, ${box.length} × ${box.width} × ${box.height} in.` : ''}
     <br>Item ${currency.format(order.subtotal_cents / 100)} · Shipping ${currency.format(order.shipping_cents / 100)} · Tax ${currency.format(order.tax_cents / 100)}
     ${order.refunded_cents ? ` · Refunded ${currency.format(order.refunded_cents / 100)}` : ''}
     <br><small>${order.id}${order.paid_at ? ' · ' + escapeHtml(order.paid_at) : ''}</small></div>
-    ${order.state === 'paid' ? `<span>Square payment ${escapeHtml(order.square_payment_id)}</span>` : `<a href="/pay/${order.id}">Review checkout</a>`}</li>`).join('');
+    ${order.state === 'paid' ? `<span>Square payment ${escapeHtml(order.square_payment_id)}
+      ${order.shipping_address ? '<br><a href="https://apps.goshippo.com/orders">Open Shippo Orders</a>' : ''}</span>` : `<a href="/pay/${order.id}">Review checkout</a>`}</li>`;
+  }).join('');
   return page('Manage orders', `<a href="/manage">← All listings</a><h1>Orders</h1>
     <p><a href="/manage/orders.csv">Download paid orders and sales tax</a></p>
     ${rows ? `<ul class="listings">${rows}</ul>` : '<p>No orders yet.</p>'}`);

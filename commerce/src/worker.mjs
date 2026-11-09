@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createStore } from './store.mjs';
 import { expireLiveOrders } from './live-checkout.mjs';
+import { processPaidOrders } from './order-handoff.mjs';
 
 let keySet;
 let keyIssuer;
@@ -36,6 +37,6 @@ const store = createStore(isAdmin);
 export default {
   fetch: store.fetch,
   async scheduled(_event, env) {
-    if (env.SQUARE_ACCESS_TOKEN) await expireLiveOrders(env);
+    if (env.SQUARE_ACCESS_TOKEN) await Promise.all([expireLiveOrders(env), processPaidOrders(env)]);
   }
 };

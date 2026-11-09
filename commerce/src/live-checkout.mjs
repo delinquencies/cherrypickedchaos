@@ -34,12 +34,14 @@ export async function reserveOrder(env, id, item, name, shipping) {
   const postage = shipping?.cents ?? 0;
   await db.prepare(`
     INSERT INTO live_orders (id, listing_id, title, subtotal_cents, shipping_cents, tax_cents,
-      location_id, customer_name, shipping_address, expires_at)
-    SELECT ?, id, title, price_cents, ?, ?, ?, ?, ?, ? FROM listings
+      location_id, customer_name, shipping_address, expires_at, shipping_package)
+    SELECT ?, id, title, price_cents, ?, ?, ?, ?, ?, ?, ? FROM listings
     WHERE id = ? AND version = ? AND status = 'published'
     ON CONFLICT DO NOTHING
   `).bind(id, postage, texasTaxCents(item.price_cents + postage), env.SQUARE_LOCATION_ID, name,
-    shipping ? JSON.stringify(shipping.address) : null, Date.now() + holdMilliseconds, item.id, item.version).run();
+    shipping ? JSON.stringify(shipping.address) : null, Date.now() + holdMilliseconds,
+    shipping ? JSON.stringify({ weight: item.ship_weight_lb, length: item.ship_length_in,
+      width: item.ship_width_in, height: item.ship_height_in }) : null, item.id, item.version).run();
   return liveOrder(db, id);
 }
 

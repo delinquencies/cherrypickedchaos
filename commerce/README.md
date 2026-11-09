@@ -35,7 +35,11 @@ The preview handles signed `payment.created` and `payment.updated` events at `/s
 
 The first live checkout accepts one item per order for Schulenburg pickup or verified Texas delivery. Confirm the Texas permit and location before using this configuration. Shippo validates delivery addresses and quotes USPS Ground Advantage. The store calculates 8.25% Texas tax on the item and shipping with half-cent amounts rounded up. Square Quick Pay charges the exact total. Use **Manage orders** and its CSV for the separate item, shipping, tax, and refund amounts.
 
-Set `SQUARE_LOCATION_ID`, add `SQUARE_ACCESS_TOKEN` and `SQUARE_WEBHOOK_KEY` as Worker secrets, and register `/square/webhook` in Square for `payment.created`, `payment.updated`, `refund.created`, and `refund.updated`. Deploy with `LIVE_CHECKOUT_ENABLED` set to `false`, test delivery from Square, and enable checkout only after the endpoint accepts a signed notification. Keep the scheduled trigger to reconcile expired holds. A verified payment marks the item sold. Handle refunds in Square, and use **Manage orders** for pickup and shipping details. Square sends buyer receipts and can notify the merchant when a payment arrives. Fulfill Texas shipments from the shop and purchase labels in Shippo.
+Set `SQUARE_LOCATION_ID`, add `SQUARE_ACCESS_TOKEN` and `SQUARE_WEBHOOK_KEY` as Worker secrets, and register `/square/webhook` in Square for `payment.created`, `payment.updated`, `refund.created`, and `refund.updated`. Deploy with `LIVE_CHECKOUT_ENABLED` set to `false`, test delivery from Square, and enable checkout only after the endpoint accepts a signed notification. A verified payment marks the item sold. Handle refunds in Square and use **Manage orders** for pickup and shipping details.
+
+The scheduled Worker sends verified paid shipping orders to Shippo Orders. Search Shippo for the order reference displayed in **Manage orders**, confirm the packed dimensions, and buy and print the label there. If an import needs review, look for the reference before entering the order manually. Pickup orders stay in the shop editor. The store does not buy labels automatically.
+
+To send a paid-order alert, configure an `ORDER_ALERT_EMAIL` send-email binding restricted to the verified recipient. Set `ORDER_ALERT_FROM` to an address on the shop’s Email Routing domain and `ORDER_ALERT_TO` to the verified destination. The alert includes the item, order reference, and private orders link. Square handles buyer receipts.
 
 ## U.S. shipping estimates
 

@@ -57,3 +57,31 @@ export async function shippingCents(item, address, env) {
     .filter(price => Number.isFinite(price) && price > 0);
   return prices.length ? Math.round(Math.min(...prices) * 100) : null;
 }
+
+export async function createShippoOrder(order, env) {
+  const address = JSON.parse(order.shipping_address);
+  const box = JSON.parse(order.shipping_package);
+  const money = cents => (cents / 100).toFixed(2);
+  const response = await shippoRequest('/orders/', {
+    from_address: { name: 'Cherry Picked Chaos', street1: '621 Lyons Ave.', city: 'Schulenburg', state: 'TX', zip: shippingOrigin, country: 'US' },
+    to_address: { ...address, name: order.customer_name, country: 'US' },
+    order_number: order.id,
+    order_status: 'PAID',
+    placed_at: order.paid_at,
+    notes: `Packed box: ${box.weight} lb, ${box.length} × ${box.width} × ${box.height} in.`,
+    currency: 'USD',
+    subtotal_price: money(order.subtotal_cents),
+    total_tax: money(order.tax_cents),
+    total_price: money(order.subtotal_cents + order.shipping_cents + order.tax_cents),
+    shipping_cost: money(order.shipping_cents),
+    shipping_cost_currency: 'USD',
+    shipping_method: 'USPS Ground Advantage',
+    weight: String(box.weight),
+    weight_unit: 'lb',
+    line_items: [{ title: order.title, quantity: 1, total_price: money(order.subtotal_cents), currency: 'USD' }]
+  }, env);
+  if (!response.ok) throw new Error('Shippo order creation failed');
+  const result = await response.json();
+  if (!result.object_id || result.order_number !== order.id) throw new Error('Unexpected Shippo order');
+  return result.object_id;
+}
