@@ -1,6 +1,18 @@
 export const shippingOrigin = '78956';
 export const demoShippingCents = 1250;
 
+export const shippingStates = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California', CO: 'Colorado',
+  CT: 'Connecticut', DE: 'Delaware', DC: 'District of Columbia', FL: 'Florida', GA: 'Georgia', HI: 'Hawaii',
+  ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa', KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana',
+  ME: 'Maine', MD: 'Maryland', MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi',
+  MO: 'Missouri', MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey',
+  NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio', OK: 'Oklahoma',
+  OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina', SD: 'South Dakota',
+  TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont', VA: 'Virginia', WA: 'Washington',
+  WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming'
+};
+
 export function shippingRateMode(env, preview) {
   const token = env.SHIPPO_API_TOKEN?.trim();
   const testToken = token?.startsWith('shippo_test_');
@@ -22,12 +34,13 @@ function shippoRequest(path, body, env) {
   });
 }
 
-export async function validateTexasAddress(address, env) {
-  const response = await shippoRequest('/addresses/', { ...address, validate: true, state: 'TX', country: 'US' }, env);
+export async function validateUSAddress(address, env) {
+  if (!Object.hasOwn(shippingStates, address.state)) return null;
+  const response = await shippoRequest('/addresses/', { ...address, validate: true, country: 'US' }, env);
   if (response.status === 400 || response.status === 422) return null;
   if (!response.ok) throw new Error('Shippo address validation failed');
   const result = await response.json();
-  if (result.validation_results?.is_valid !== true || result.state !== 'TX' || result.country !== 'US' ||
+  if (result.validation_results?.is_valid !== true || result.state !== address.state || result.country !== 'US' ||
       !result.street1 || !result.city || !/^\d{5}(?:-\d{4})?$/.test(result.zip)) return null;
   const { street1, street2, city, state, zip } = result;
   if (address.street2 && !street2) return null;

@@ -33,7 +33,7 @@ The preview handles signed `payment.created` and `payment.updated` events at `/s
 
 ## Live checkout
 
-The first live checkout accepts one item per order for Schulenburg pickup or verified Texas delivery. Confirm the Texas permit and location before using this configuration. Shippo validates delivery addresses and quotes USPS Ground Advantage. The store calculates 8.25% Texas tax on the item and shipping with half-cent amounts rounded up. Square Quick Pay charges the exact total. Use **Manage orders** and its CSV for the separate item, shipping, tax, and refund amounts.
+Live checkout accepts one item per order for Schulenburg pickup or verified delivery to the 50 U.S. states and D.C. Shippo validates delivery addresses and quotes USPS Ground Advantage. The store collects 8.25% Texas tax on pickup and Texas delivery, including taxable shipping charges, with half-cent amounts rounded up. The business has confirmed it currently collects sales tax only in Texas. Revisit that configuration if its obligations change, and retain proof of delivery for out-of-state sales. Square Quick Pay charges the exact total. Use **Manage orders** and its CSV for destination state, item, shipping, tax, and refund amounts.
 
 Set `SQUARE_LOCATION_ID`, add `SQUARE_ACCESS_TOKEN` and `SQUARE_WEBHOOK_KEY` as Worker secrets, and register `/square/webhook` in Square for `payment.created`, `payment.updated`, `refund.created`, and `refund.updated`. Deploy with `LIVE_CHECKOUT_ENABLED` set to `false`, test delivery from Square, and enable checkout only after the endpoint accepts a signed notification. A verified payment marks the item sold. Handle refunds in Square and use **Manage orders** for pickup and shipping details.
 

@@ -1,4 +1,4 @@
-import { demoShippingCents, shippingCents, shippingOrigin, shippingRateMode, validateTexasAddress } from './shipping.mjs';
+import { demoShippingCents, shippingCents, shippingOrigin, shippingRateMode, shippingStates, validateUSAddress } from './shipping.mjs';
 import { cancelSandboxCheckout, checkSandboxPayment, getSandboxCheckout, handleSandboxWebhook, openSandboxCheckout, reserveSandboxCheckout, sandboxReady } from './square-sandbox.mjs';
 import { cancelOrder, checkOrder, liveCheckoutReady, liveOrder, liveWebhook, openOrder, reserveOrder } from './live-checkout.mjs';
 
@@ -169,7 +169,7 @@ function storefront(items, preview, ratesAvailable, live) {
       </div>
     </section>
     <section class="container shop-finds" aria-label="Shop finds">
-      <p class="notice">${showSamples ? 'These sample finds and prices are for browsing. ' : ''}${live ? 'Shop one find at a time. Pick up in Schulenburg or ship eligible finds within Texas.' : 'Online checkout is coming soon.'}</p>
+      <p class="notice">${showSamples ? 'These sample finds and prices are for browsing. ' : ''}${live ? 'Shop one find at a time. Pick up in Schulenburg or ship eligible finds to all 50 states and D.C.' : 'Online checkout is coming soon.'}</p>
       ${cards ? `
         <div class="lucky-bar">
           <p>Go on, have a little look!</p>
@@ -435,7 +435,7 @@ function liveOrderPage(order, message = '', status = 200) {
     <dl class="checkout-totals">
       <div><dt>Item subtotal</dt><dd>${currency.format(order.subtotal_cents / 100)}</dd></div>
       <div><dt>Shipping</dt><dd>${currency.format(order.shipping_cents / 100)}</dd></div>
-      <div><dt>Texas sales tax</dt><dd>${currency.format(order.tax_cents / 100)}</dd></div>
+      <div><dt>${order.tax_cents ? 'Texas sales tax' : 'Sales tax'}</dt><dd>${currency.format(order.tax_cents / 100)}</dd></div>
       <div class="price"><dt>Total</dt><dd>${currency.format(total / 100)}</dd></div>
     </dl>
     <p>Order reference: ${order.id}</p>
@@ -454,9 +454,12 @@ function liveOrderForm(item, ratesAvailable) {
     ${item.ship_weight_lb && ratesAvailable ? `<form action="/pay" method="post" class="checkout-shipping">
       ${fields()}
       <input type="hidden" name="fulfillment" value="shipping">
-      <label>Texas street address <input name="street" autocomplete="address-line1" maxlength="100" required></label>
+      <label>U.S. street address <input name="street" autocomplete="address-line1" maxlength="100" required></label>
       <label>Apartment or suite <input name="unit" autocomplete="address-line2" maxlength="100"></label>
-      <label>City, TX <input name="city" autocomplete="address-level2" maxlength="80" required></label>
+      <label>City <input name="city" autocomplete="address-level2" maxlength="80" required></label>
+      <label>State <select name="state" autocomplete="address-level1" required><option value="">Choose a state</option>
+        ${Object.entries(shippingStates).map(([code, name]) => `<option value="${code}">${name}</option>`).join('')}
+      </select></label>
       <label>ZIP <input name="zip" autocomplete="postal-code" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" required></label>
       <button type="submit">Confirm delivery and quote</button>
     </form>` : ''}`;
@@ -489,13 +492,14 @@ async function handleLiveOrder(request, env, url) {
         const street1 = getField(form, 'street');
         const street2 = getField(form, 'unit');
         const city = getField(form, 'city');
+        const state = getField(form, 'state');
         const zip = getField(form, 'zip');
         if (!item.ship_weight_lb || shippingRateMode(env, false) !== 'live' || !street1 || street1.length > 100 ||
-            street2.length > 100 || !city || city.length > 80 || !validShippingZip(zip)) {
-          throw new ListingError('Enter a complete Texas delivery address for a shippable item.');
+            street2.length > 100 || !city || city.length > 80 || !Object.hasOwn(shippingStates, state) || !validShippingZip(zip)) {
+          throw new ListingError('Enter a complete U.S. delivery address for a shippable item.');
         }
-        const address = await validateTexasAddress({ street1, street2, city, zip }, env);
-        if (!address) throw new ListingError('Shippo could not verify that Texas address. Check the street, unit and ZIP.');
+        const address = await validateUSAddress({ street1, street2, city, state, zip }, env);
+        if (!address) throw new ListingError('Shippo could not verify that address. Check the street, unit, state and ZIP.');
         const cents = await shippingCents(item, address, env);
         if (!cents) throw new ListingError('USPS Ground Advantage is unavailable for this box and address. Choose local pickup.');
         shipping = { address, cents };
@@ -549,9 +553,11 @@ async function manageOrders(db) {
 }
 
 async function exportOrders(db) {
-  const { results } = await db.prepare(`SELECT id, paid_at, square_payment_id, subtotal_cents, shipping_cents, tax_cents, refunded_cents
+  const { results } = await db.prepare(`SELECT id, paid_at, square_payment_id,
+    COALESCE(json_extract(shipping_address, '$.state'), 'TX') AS destination_state,
+    subtotal_cents, shipping_cents, tax_cents, refunded_cents
     FROM live_orders WHERE state = 'paid' ORDER BY paid_at DESC`).all();
-  const fields = ['id', 'paid_at', 'square_payment_id', 'subtotal_cents', 'shipping_cents', 'tax_cents', 'refunded_cents'];
+  const fields = ['id', 'paid_at', 'square_payment_id', 'destination_state', 'subtotal_cents', 'shipping_cents', 'tax_cents', 'refunded_cents'];
   const csv = [fields.join(','), ...results.map(row => fields.map(field => '"' + String(row[field] ?? '').replaceAll('"', '""') + '"').join(','))].join('\r\n');
   return new Response(csv + '\r\n', { headers: { ...securityHeaders,
     'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="cherry-picked-chaos-orders.csv"' } });
@@ -687,7 +693,7 @@ async function checkoutSummary(env, params, preview, clientIp) {
   const pickupUrl = '/checkout?items=' + encodeURIComponent(ids.join(','));
 
   return page(title, `${heading}
-    <p class="notice">${live ? 'Choose pickup or Texas delivery to review your final total and sales tax.' : 'Online orders and payments are coming soon. This is an estimate.'}</p>
+    <p class="notice">${live ? 'Choose pickup or U.S. delivery to review your final total and sales tax.' : 'Online orders and payments are coming soon. This is an estimate.'}</p>
     <div class="checkout-grid">
       <section class="quote-panel" aria-labelledby="delivery-title">
         <h2 id="delivery-title">Pickup or shipping</h2>
