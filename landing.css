@@ -41,3 +41,65 @@ section[id],main[id]{scroll-margin-top:110px}.landing-page .hero-actions{gap:18p
 @media(max-width:380px){.map-storefront-badge{gap:10px;padding:8px}.map-storefront-badge>img{width:76px;height:64px}.map-storefront-badge strong{font-size:1rem}}
 
 .opening-dates time{display:block}.calendar-download{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin-top:10px;padding:8px 14px;border:1px solid var(--cherry);border-radius:30px;color:var(--cherry);background:#fff9ee;font-size:.8rem;font-weight:800;text-decoration:none}.calendar-download:hover{background:var(--pink)}.calendar-download:focus-visible{outline:3px solid var(--olive);outline-offset:3px}.opening-calendar .calendar-help{font-size:.8rem;color:var(--muted);max-width:700px}
+
+/* Keep the storefront one tap away as visitors browse the homepage. */
+.shop-pill {
+  position: fixed;
+  right: calc(clamp(14px, 3vw, 30px) + env(safe-area-inset-right, 0px));
+  bottom: calc(clamp(14px, 3vw, 30px) + env(safe-area-inset-bottom, 0px));
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 5px 12px 5px 8px;
+  border: 2px solid var(--cherry);
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--cherry);
+  box-shadow: 3px 3px 0 var(--cherry);
+  font-family: var(--serif);
+  font-size: .875rem;
+  font-weight: 900;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.shop-pill img {
+  flex: none;
+  transform: rotate(-9deg);
+}
+
+.shop-pill-arrow {
+  font-size: 1rem;
+}
+
+.shop-pill:hover,
+.shop-pill:focus-visible {
+  background: var(--pink);
+  color: var(--cherry);
+}
+
+.shop-pill:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.shop-pill:active {
+  box-shadow: 1px 1px 0 var(--cherry);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shop-pill img {
+    transition: transform .2s ease-out;
+  }
+
+  .shop-pill:hover img,
+  .shop-pill:focus-visible img {
+    transform: rotate(8deg);
+  }
+}
+
+.landing-page .shop-pill ~ .site-footer {
+  padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+}
