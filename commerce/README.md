@@ -15,7 +15,7 @@ npm run preview
 - Shop: http://127.0.0.1:8004/
 - Editor: http://127.0.0.1:8004/manage
 
-The local editor is open for testing on loopback and uses a local database. When it has no published or sold listings, the preview shows the four original sample finds so you can try the filters and Surprise Me. Use the production Worker entry point when deploying. The local preview config is for development only.
+The local editor is open for testing on loopback and uses a local database. When it has no published or sold listings, the preview shows the four original sample finds so you can try the filters and Surprise Me. The preview also has a demo bag that saves picks in the browser and shows an item subtotal. Use the production Worker entry point when deploying. The local preview config is for development only.
 
 ## Private online editor
 

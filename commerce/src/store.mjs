@@ -48,7 +48,7 @@ function escapeHtml(value) {
   })[character]);
 }
 
-function page(title, content, status = 200, { editor = false, shop = false } = {}) {
+function page(title, content, status = 200, { editor = false, shop = false, demoBag = false } = {}) {
   return new Response(`<!doctype html>
 <html lang="en">
 <head>
@@ -69,7 +69,10 @@ function page(title, content, status = 200, { editor = false, shop = false } = {
         <img src="/brand/cherries.svg" alt="" width="50" height="54">
         <span>Cherry Picked <strong>Chaos!</strong></span>
       </a>
-      <a class="header-link" href="${shop ? 'https://www.cherrypickedchaos.com/' : '/'}">${shop ? '← Back to the main site' : 'View shop ↗'}</a>
+      <div class="header-actions">
+        <a class="header-link" href="${shop ? 'https://www.cherrypickedchaos.com/' : '/'}">${shop ? '← Back to the main site' : 'View shop ↗'}</a>
+        ${demoBag ? '<button class="bag-toggle" type="button" aria-haspopup="dialog" aria-controls="demo-bag" hidden>Bag <span class="bag-count">0</span></button>' : ''}
+      </div>
     </div>
   </header>
   <main class="${shop ? 'shop' : 'container workspace'}">${content}</main>
@@ -106,9 +109,25 @@ function shippingControl(item, id, ratesAvailable) {
   </details>`;
 }
 
+function demoBagDrawer(showSamples) {
+  return `<dialog class="bag-drawer" id="demo-bag" aria-labelledby="bag-title" aria-describedby="bag-note" data-storage-key="${showSamples ? 'cpc-demo-bag' : 'cpc-preview-listing-bag'}">
+    <div class="bag-heading">
+      <h2 id="bag-title">Demo Bag ♥</h2>
+      <form method="dialog"><button class="bag-close" type="submit" aria-label="Close demo bag" autofocus>✕</button></form>
+    </div>
+    <p class="hint" id="bag-note">Preview only. Adding a find doesn’t reserve it or place an order.</p>
+    <p class="bag-empty">A little empty in here! Find a treasure to tuck away.</p>
+    <ul class="bag-items" aria-label="Finds in your demo bag"></ul>
+    <p class="bag-subtotal"><span>Item subtotal</span><strong>$0.00</strong></p>
+    <form method="dialog"><button type="submit">Keep browsing</button></form>
+  </dialog>
+  <p class="bag-toast" role="status"></p>`;
+}
+
 function storefront(items, preview, ratesAvailable) {
   const showSamples = preview && items.length === 0;
   const finds = showSamples ? sampleFinds : items;
+  const demoBag = preview && finds.some(item => item.status !== 'sold');
   const cards = finds.map(item => {
     const id = showSamples ? 'sample-' + item.image : item.id;
     return `
@@ -122,6 +141,7 @@ function storefront(items, preview, ratesAvailable) {
         <h2>${escapeHtml(item.title)}</h2>
         <p class="description">${escapeHtml(item.description)}</p>
         <p class="price">${currency.format(item.price_cents / 100)}${showSamples ? '<small>Illustrative price</small>' : ''}</p>
+        ${demoBag && item.status !== 'sold' ? `<button class="bag-add" type="button" data-bag-item="${showSamples ? item.image : id}" data-price-cents="${item.price_cents}" hidden>Add to demo bag</button>` : ''}
         ${shippingControl(item, id, ratesAvailable)}
       </div>
     </article>`;
@@ -149,7 +169,8 @@ function storefront(items, preview, ratesAvailable) {
         </div>
         <div class="grid">${cards}</div>
         <p class="empty-category" role="status" hidden>No finds in this category yet.</p>` : '<p>No finds have been published yet.</p>'}
-    </section>`, 200, { shop: true });
+    </section>
+    ${demoBag ? demoBagDrawer(showSamples) : ''}`, 200, { shop: true, demoBag });
 }
 
 function editor(item = null) {

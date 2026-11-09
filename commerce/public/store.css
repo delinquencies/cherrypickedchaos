@@ -34,7 +34,10 @@ img { display: block; }
 .brand { display: inline-flex; align-items: center; gap: 8px; font: 1.3rem/.96 var(--display); text-decoration: none; transform: rotate(-2deg); }
 .brand img { flex: none; object-fit: contain; }
 .brand strong { display: block; margin-left: 8px; color: #ba1b47; font-weight: inherit; }
+.header-actions { display: flex; align-items: center; gap: 12px; }
 .header-link { text-align: right; font-size: .85rem; font-weight: 800; }
+.bag-toggle { flex: none; padding: 6px 12px; border: 2px dashed var(--cherry); background: #f9dbe0; color: var(--cherry); }
+.bag-count { display: inline-block; min-width: 1.55em; padding-inline: 4px; border-radius: 2em; background: #f2c5cd; text-align: center; }
 h1, h2 { font-family: var(--serif); line-height: 1.15; }
 h1 { margin: .15em 0; font: clamp(2.4rem, 6vw, 4.5rem)/1.14 var(--display); color: var(--cherry); }
 .eyebrow { color: var(--cherry); font-weight: 800; text-transform: uppercase; letter-spacing: .13em; font-size: .75rem; }
@@ -125,6 +128,7 @@ h1 { margin: .15em 0; font: clamp(2.4rem, 6vw, 4.5rem)/1.14 var(--display); colo
 .description { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .89rem; margin: 0 0 16px; }
 .price { margin: auto 0 0; font-weight: 900; color: var(--cherry); }
 .price small { display: block; color: var(--ink); font-size: .72rem; font-weight: 600; }
+.bag-add { align-self: start; margin-top: 9px; padding-inline: 12px; box-shadow: 3px 3px 0 #dfafbc; font-size: .84rem; }
 .fulfillment-note, .shipping { margin: 12px 0 0; font-size: .85rem; }
 .shipping { border-top: 1px dashed var(--line); }
 .shipping summary { padding-block: 11px; color: var(--cherry); font-weight: 800; cursor: pointer; }
@@ -133,6 +137,41 @@ h1 { margin: .15em 0; font: clamp(2.4rem, 6vw, 4.5rem)/1.14 var(--display); colo
 .shipping-row input { flex: 1 1 6ch; min-height: 44px; }
 .shipping-row button { max-width: 100%; padding: 8px 10px; }
 .shipping .hint { margin-bottom: 0; }
+.bag-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(100%, 460px);
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: clamp(16px, 5vw, 27px);
+  border: 0;
+  border-left: 5px solid #c52049;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: -15px 0 40px #2e111233;
+  overscroll-behavior: contain;
+}
+.bag-drawer::backdrop { background: #24100f85; }
+body:has(.bag-drawer[open]) { overflow: hidden; }
+.bag-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.bag-heading h2 { margin: 0; color: var(--cherry); font: 1.85rem var(--display); }
+.bag-close { min-width: 44px; padding: 8px; background: #f9dbe0; color: var(--cherry); }
+.bag-items { margin: 0; padding: 0; list-style: none; }
+.bag-items li { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.bag-items img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; }
+.bag-items h3 { margin: 0; font-size: .9rem; overflow-wrap: anywhere; }
+.bag-items button { padding: 0 8px 0 0; background: transparent; color: var(--cherry); font-size: .84rem; text-decoration: underline; }
+.bag-subtotal { display: flex; justify-content: space-between; gap: 10px; margin-block: 20px; font-weight: 800; }
+.bag-empty { padding: 20px 0; text-align: center; font: italic 800 1.1rem var(--serif); }
+.bag-empty::before { content: ''; display: block; width: 54px; height: 54px; margin: 0 auto 12px; background: url('/brand/cherries.svg') center / contain no-repeat; }
+.bag-toast { position: fixed; z-index: 2; inset: auto 12px 12px; width: fit-content; margin: 0 auto; padding: 10px 15px; border: 2px solid #ffedb5; border-radius: 18px; background: var(--olive); color: white; font-weight: 800; text-align: center; pointer-events: none; }
+.bag-toast:empty { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .bag-drawer[open] { animation: bag-slide-in .24s ease-out; }
+  @keyframes bag-slide-in { from { transform: translateX(100%); } }
+}
 .card.lucky-pick { outline: 4px dotted var(--cherry); outline-offset: 5px; }
 .card.lucky-pick::after {
   content: 'Lucky pick!';
@@ -191,6 +230,7 @@ button:disabled { opacity: .7; cursor: wait; }
 }
 @media (max-width: 570px) {
   .container { width: calc(100% - 32px); }
+  .header-actions { gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
   .brand { font-size: 1.08rem; }
   .brand img { width: 36px; height: 40px; }
   .shop-hero { padding: 54px 0 42px; }
