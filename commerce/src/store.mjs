@@ -6,6 +6,21 @@ const categories = {
   stoneware: 'Stoneware',
   primitives: 'Primitives',
   americana: 'Americana',
+  'vintage-clothes': 'Vintage Clothes',
+  records: 'Records',
+  ephemera: 'Ephemera',
+  toys: 'Toys',
+  kitchenware: 'Kitchenware',
+  gadgets: 'Gadgets',
+  oddities: 'Oddities',
+  seasonal: 'Seasonal',
+  glassware: 'Glassware',
+  'handbags-accessories': 'Handbags & Accessories',
+  jewelry: 'Jewelry',
+  'sports-collectibles': 'Sports Collectibles',
+  'pop-culture-collectibles': 'Pop Culture Collectibles',
+  furniture: 'Furniture',
+  'crafts-sewing': 'Crafts & Sewing',
   other: 'Other Finds'
 };
 const securityHeaders = {
@@ -73,15 +88,14 @@ function storefront(items, preview) {
         <span class="tag">${showSamples ? 'Sample listing' : item.status === 'sold' ? 'Sold' : 'One of a kind'}</span>
       </div>
       <div class="card-body">
-        <span class="category-tag">${categories[item.category]}</span>
+        <span class="category-tag">${escapeHtml(categories[item.category])}</span>
         <h2>${escapeHtml(item.title)}</h2>
         <p class="description">${escapeHtml(item.description)}</p>
         <p class="price">${currency.format(item.price_cents / 100)}${showSamples ? '<small>Illustrative price</small>' : ''}</p>
       </div>
     </article>`).join('');
   const filters = Object.entries(categories)
-    .filter(([category]) => category !== 'other' || finds.some(item => item.category === category))
-    .map(([category, label]) => `<button type="button" data-filter="${category}" aria-pressed="false">${label}</button>`).join('');
+    .map(([category, label]) => `<button type="button" data-filter="${category}" aria-pressed="false">${escapeHtml(label)}</button>`).join('');
   return page('Shop Selected Finds', `
     <section class="shop-hero">
       <img class="hero-cherries" src="/brand/cherries.svg" alt="" aria-hidden="true" width="145" height="150">
@@ -110,7 +124,7 @@ function editor(item = null) {
   const editing = item !== null;
   const id = editing ? item.id : '';
   const categoryOptions = Object.entries(categories).map(([value, label]) =>
-    `<option value="${value}"${item?.category === value ? ' selected' : ''}>${label}</option>`).join('');
+    `<option value="${value}"${item?.category === value ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('');
   return `
     <form class="editor" method="post" enctype="multipart/form-data" action="/manage/save">
       <input type="hidden" name="id" value="${id}">
@@ -130,7 +144,7 @@ function editor(item = null) {
 function manage(items, preview) {
   const rows = items.map(item => `
     <li>
-      <div><strong>${escapeHtml(item.title)}</strong><br><span class="hint">${currency.format(item.price_cents / 100)} · ${categories[item.category]} · ${item.status}</span></div>
+      <div><strong>${escapeHtml(item.title)}</strong><br><span class="hint">${currency.format(item.price_cents / 100)} · ${escapeHtml(categories[item.category])} · ${item.status}</span></div>
       <a href="/manage/item/${item.id}">Edit listing →</a>
     </li>`).join('');
   return page('Manage listings', `

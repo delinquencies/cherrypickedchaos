@@ -185,6 +185,8 @@ button:disabled { opacity: .7; cursor: wait; }
   .shop-hero h1 { font-size: clamp(2.75rem, 10vw, 4rem); }
   .hero-cherries { width: 65px; left: -17px; top: 4px; opacity: .42; }
   .grid { gap: 14px; }
+  .filters { flex-wrap: nowrap; overflow-x: auto; padding: 7px 7px 11px; margin-inline: -7px; }
+  .filters button { flex: 0 0 auto; white-space: nowrap; }
   .card-body { padding: 12px; }
   .card h2 { font-size: 1.04rem; }
 }
