@@ -244,9 +244,26 @@ function editPage(item) {
     <a href="/manage">← All listings</a>
     <h1>Edit listing.</h1>
     <p class="notice">Status: <strong>${item.status}</strong></p>
-    <div class="actions">${controls}</div>
+    <div class="actions">${controls}
+      ${item.status === 'draft' ? `<a class="button" href="/manage/item/${item.id}/delete">Delete draft</a>` : ''}
+    </div>
     <img class="editor-photo" src="/manage/photo/${item.id}?v=${item.version}" alt="${escapeHtml(item.title)}">
     ${editor(item)}`, 200, { editor: true });
+}
+
+function confirmDeleteDraft(item) {
+  if (item.status !== 'draft') return staleListing();
+  return page('Delete draft', `
+    <h1>Delete draft?</h1>
+    <p>This permanently deletes <strong>${escapeHtml(item.title)}</strong> and its photo.</p>
+    <div class="actions">
+      <a class="button" href="/manage/item/${item.id}">Cancel</a>
+      <form action="/manage/delete" method="post">
+        <input type="hidden" name="id" value="${item.id}">
+        <input type="hidden" name="version" value="${item.version}">
+        <button type="submit">Permanently delete draft</button>
+      </form>
+    </div>`);
 }
 
 class ListingError extends Error {}
@@ -354,6 +371,18 @@ async function setStatus(db, form) {
   `).bind(status, new Date().toISOString(), id, version, first, second).run();
   if (!result.meta.changes) return staleListing();
   return redirect('/manage/item/' + id);
+}
+
+async function deleteDraft(db, form) {
+  const id = getField(form, 'id');
+  const version = Number(getField(form, 'version'));
+  if (!new RegExp(`^${itemId}$`).test(id) || !Number.isInteger(version) || version < 1) {
+    throw new ListingError('This draft could not be deleted.');
+  }
+  const result = await db.prepare("DELETE FROM listings WHERE id = ? AND version = ? AND status = 'draft'")
+    .bind(id, version).run();
+  if (!result.meta.changes) return staleListing();
+  return redirect('/manage');
 }
 
 function notFound() {
@@ -499,10 +528,11 @@ export function createStore(isAdmin, { preview = false } = {}) {
             return manage(results, preview);
           }
           if (path === '/manage/new') return page('New listing', '<a href="/manage">← All listings</a><h1>Add a find.</h1>' + editor(), 200, { editor: true });
-          const item = path.match(new RegExp(`^/manage/item/(${itemId})$`));
+          const item = path.match(new RegExp(`^/manage/item/(${itemId})(/delete)?$`));
           if (item) {
             const record = await db.prepare(`SELECT id, title, description, price_cents, status, version, category, ${packageColumns} FROM listings WHERE id = ?`).bind(item[1]).first();
-            return record ? editPage(record) : notFound();
+            if (!record) return notFound();
+            return item[2] ? confirmDeleteDraft(record) : editPage(record);
           }
           const image = path.match(new RegExp(`^/(?:manage/)?photo/(${itemId})$`));
           if (image) {
@@ -516,12 +546,13 @@ export function createStore(isAdmin, { preview = false } = {}) {
           if (path === '/store.css' || path === '/manage.js') return env.ASSETS.fetch(request);
         }
 
-        if (request.method === 'POST' && (path === '/manage/save' || path === '/manage/status')) {
+        if (request.method === 'POST' && ['/manage/save', '/manage/status', '/manage/delete'].includes(path)) {
           if (request.headers.get('Origin') !== url.origin) return new Response(null, { status: 403, headers: securityHeaders });
           if (Number(request.headers.get('Content-Length')) > imageLimit + 40_000) {
             throw new ListingError('Choose a smaller photo and try again.');
           }
           const form = await request.formData();
+          if (path === '/manage/delete') return await deleteDraft(db, form);
           return path === '/manage/save' ? await saveListing(db, form) : await setStatus(db, form);
         }
         return notFound();
