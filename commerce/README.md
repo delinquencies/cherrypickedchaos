@@ -29,6 +29,8 @@ The demo bag opens a local checkout preview with pickup, an example shipping est
 
 ## U.S. shipping estimates
 
-Apply the D1 migrations before running this version. Existing listings start as local pickup only. To offer shipping, select **Local pickup or U.S. shipping** and enter the packed weight and outside box dimensions. Buyers can request a USPS Ground Advantage postage estimate by entering a five-digit U.S. delivery ZIP. The origin is the shop ZIP, `78956`.
+Apply the D1 migrations before running this version. Existing listings start as local pickup only. To offer shipping, select **Local pickup or U.S. shipping** and enter the packed weight and outside box dimensions. The calculator requests USPS Ground Advantage rates from Shippo using the Schulenburg shop address and the buyer’s five-digit U.S. delivery ZIP. Checkout estimates one box per item.
 
-Without credentials the local preview shows a clearly labeled example amount. The production Worker displays live estimates only when both `USPS_CLIENT_ID` and `USPS_CLIENT_SECRET` are configured as Worker secrets. Create a USPS app with access to Domestic Prices, keep its credentials out of Git, and verify carrier quotes for representative box sizes and destinations before enabling the public calculator. Use a rate-limiting rule for `/shipping/*` on the production hostname to protect the carrier quota. The calculator requests retail postage and does not buy labels or accept payment.
+Generate a [Shippo test API key](https://docs.goshippo.com/guides/testing) and set `SHIPPO_API_TOKEN` in the ignored `commerce/.dev.vars` file. Restart the local preview to enable Shippo test quotes on listing and checkout pages. Without a test key, the preview shows example postage.
+
+For the production Worker, configure a live `SHIPPO_API_TOKEN` as a Worker secret. Verify quotes for representative box sizes and destinations before enabling the public calculator. Use a rate-limiting rule for `/shipping/*` on the production hostname to protect the carrier quota. Label purchases and payment processing are separate integrations.

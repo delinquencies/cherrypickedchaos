@@ -1,4 +1,4 @@
-import { hasLiveShipping, shippingCents, shippingOrigin } from './shipping.mjs';
+import { demoShippingCents, shippingCents, shippingOrigin, shippingRateMode } from './shipping.mjs';
 
 const imageLimit = 1_000_000;
 const itemId = '[a-f0-9-]{36}';
@@ -10,7 +10,6 @@ const packageFields = [
   ['ship_height_in', 'Box height (in)', 1, 108]
 ];
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-const demoShippingCents = 1250;
 const categories = {
   wear: 'Vintage Wear',
   stoneware: 'Stoneware',
@@ -372,8 +371,22 @@ function validShippingZip(zip) {
   return /^\d{5}$/.test(zip) && zip !== '00000';
 }
 
-async function demoCheckout(db, params) {
-  const listings = await shopListings(db);
+async function quoteShipping(items, zip, env, mode) {
+  if (mode === 'example') return { cents: demoShippingCents * items.length, status: 200 };
+  if (!mode) return { cents: null, status: 503, message: 'U.S. shipping rates are coming soon. Local pickup is available.' };
+  try {
+    const prices = await Promise.all(items.map(item => shippingCents(item, zip, env)));
+    if (prices.every(price => price !== null)) {
+      return { cents: prices.reduce((total, price) => total + price, 0), status: 200 };
+    }
+    return { cents: null, status: 200, message: 'A rate is unavailable for this ZIP and package. Check the ZIP code or choose local pickup.' };
+  } catch {
+    return { cents: null, status: 503, message: 'The carrier rate lookup is temporarily unavailable. Try again shortly.' };
+  }
+}
+
+async function demoCheckout(env, params) {
+  const listings = await shopListings(env.STORE_DB);
   const finds = listings.length ? listings.filter(item => item.status === 'published') : sampleFinds;
   const available = new Map(finds.map(item => [item.id ?? item.image, item]));
   const ids = [...new Set((params.get('items') ?? '').split(',').filter(Boolean))];
@@ -387,8 +400,10 @@ async function demoCheckout(db, params) {
   const canShip = items.every(item => item.ship_weight_lb);
   const zip = params.get('zip')?.trim() ?? '';
   const wantsShipping = canShip && params.has('zip');
-  const hasQuote = wantsShipping && validShippingZip(zip);
-  const postage = hasQuote ? demoShippingCents * items.length : 0;
+  const mode = shippingRateMode(env, true);
+  const quote = wantsShipping && validShippingZip(zip) ? await quoteShipping(items, zip, env, mode) : null;
+  const hasQuote = quote?.cents != null;
+  const postage = quote?.cents ?? 0;
   const subtotal = items.reduce((sum, item) => sum + item.price_cents, 0);
   const pickupUrl = '/checkout?items=' + encodeURIComponent(ids.join(','));
 
@@ -405,21 +420,21 @@ async function demoCheckout(db, params) {
             <input id="checkout-zip" name="zip" type="text" inputmode="numeric" autocomplete="shipping postal-code" pattern="[0-9]{5}" maxlength="5" value="${escapeHtml(zip.slice(0, 20))}" required>
             <button type="submit">Calculate shipping</button>
           </div>
-          ${wantsShipping && !hasQuote ? '<p role="alert">Enter a five-digit U.S. ZIP code.</p>' : ''}
+          ${wantsShipping && !hasQuote ? `<p role="alert">${quote?.message ?? 'Enter a five-digit U.S. ZIP code.'}</p>` : ''}
         </form>
-        <p class="hint">The demo uses example postage for each packed box.</p>` : '<p class="hint">Your bag includes a pickup-only find. To estimate shipping, return to the shop and remove any pickup-only finds from your bag.</p>'}
+        <p class="hint">${mode === 'test' ? 'Shippo test rates are estimated for each packed box.' : 'The demo uses example postage for each packed box.'}</p>` : '<p class="hint">Your bag includes a pickup-only find. To estimate shipping, return to the shop and remove any pickup-only finds from your bag.</p>'}
       </section>
       <section class="quote-panel" aria-labelledby="summary-title">
         <h2 id="summary-title">Order summary</h2>
         <ul class="checkout-items">${items.map(item => `<li><span>${escapeHtml(item.title)}</span><strong>${currency.format(item.price_cents / 100)}</strong></li>`).join('')}</ul>
         <dl class="checkout-totals">
           <div><dt>Item subtotal</dt><dd>${currency.format(subtotal / 100)}</dd></div>
-          <div><dt>${hasQuote ? 'Example shipping' : 'Local pickup'}</dt><dd>${currency.format(postage / 100)}</dd></div>
+          <div><dt>${hasQuote ? (mode === 'test' ? 'Shippo test shipping' : 'Example shipping') : 'Local pickup'}</dt><dd>${currency.format(postage / 100)}</dd></div>
           <div class="price"><dt>Estimated total before tax</dt><dd>${currency.format((subtotal + postage) / 100)}</dd></div>
         </dl>
         <p class="hint">Square payment will be available at launch.</p>
       </section>
-    </div>`);
+    </div>`, quote?.status ?? 200);
 }
 
 async function shippingEstimate(id, zip, env, preview) {
@@ -434,21 +449,8 @@ async function shippingEstimate(id, zip, env, preview) {
     return page('Check the delivery ZIP', `${back}<h1>Check the delivery ZIP.</h1><p>Enter a five-digit U.S. ZIP code.</p>`, 400);
   }
 
-  const sampleRate = preview && !hasLiveShipping(env);
-  let cents = sampleRate ? demoShippingCents : null;
-  let status = 200;
-  let message = 'A rate is unavailable for this ZIP and package. Check the ZIP code or choose local pickup.';
-  if (hasLiveShipping(env)) {
-    try {
-      cents = await shippingCents(item, zip, env);
-    } catch {
-      status = 503;
-      message = 'The carrier rate lookup is temporarily unavailable. Try again shortly.';
-    }
-  } else if (!sampleRate) {
-    status = 503;
-    message = 'U.S. shipping rates are coming soon. Local pickup is available.';
-  }
+  const mode = shippingRateMode(env, preview);
+  const { cents, status, message } = await quoteShipping([item], zip, env, mode);
 
   return page('Shipping estimate', `
     ${back}
@@ -457,8 +459,9 @@ async function shippingEstimate(id, zip, env, preview) {
       <h2>${escapeHtml(item.title)}</h2>
       <p>From Schulenburg, TX ${shippingOrigin} to ZIP ${zip}</p>
       ${cents === null ? `<p>${message}</p>` : `<p class="price">${currency.format(cents / 100)} · USPS Ground Advantage</p>`}
-      ${sampleRate ? '<p class="hint">Preview only. This example amount stays the same for every ZIP.</p>' : ''}
-      ${sampleRate || cents === null ? `<p class="hint">Packed box: ${item.ship_weight_lb} lb, ${item.ship_length_in} × ${item.ship_width_in} × ${item.ship_height_in} in. <a href="https://postcalc.usps.com/">Check postage at USPS</a>.</p>` : ''}
+      ${mode === 'example' ? '<p class="hint">Preview only. This example amount stays the same for every ZIP.</p>' : ''}
+      ${mode === 'test' ? '<p class="hint">Shippo test rates may differ from live postage.</p>' : ''}
+      ${mode === 'example' || cents === null ? `<p class="hint">Packed box: ${item.ship_weight_lb} lb, ${item.ship_length_in} × ${item.ship_width_in} × ${item.ship_height_in} in.</p>` : ''}
       <p class="hint">Postage only. Local pickup is also available. Online checkout is coming soon.</p>
     </section>`, status);
 }
@@ -477,9 +480,9 @@ export function createStore(isAdmin, { preview = false } = {}) {
 
         if (request.method === 'GET') {
           if (path === '/') {
-            return storefront(await shopListings(db), preview, preview || hasLiveShipping(env));
+            return storefront(await shopListings(db), preview, Boolean(shippingRateMode(env, preview)));
           }
-          if (path === '/checkout' && preview) return await demoCheckout(db, url.searchParams);
+          if (path === '/checkout' && preview) return await demoCheckout(env, url.searchParams);
           const shipping = path.match(/^\/shipping\/([a-z0-9-]+)$/);
           if (shipping) return await shippingEstimate(shipping[1], url.searchParams.get('zip') ?? '', env, preview);
           if (path === '/manage') {
