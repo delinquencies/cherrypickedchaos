@@ -4,6 +4,9 @@ compatibility_date = "2026-11-09"
 workers_dev = false
 preview_urls = false
 
+[triggers]
+crons = ["*/5 * * * *"]
+
 [assets]
 directory = "./public"
 binding = "ASSETS"
@@ -13,6 +16,8 @@ binding = "ASSETS"
 STORE_ADMIN_EMAIL = "mdbarton81@gmail.com"
 ACCESS_ISSUER = "https://YOUR-TEAM.cloudflareaccess.com"
 ACCESS_AUDIENCE = "REPLACE_WITH_ACCESS_APPLICATION_AUD"
+LIVE_CHECKOUT_ENABLED = "false"
+SQUARE_LOCATION_ID = "REPLACE_WITH_SQUARE_LOCATION_ID"
 
 [[d1_databases]]
 binding = "STORE_DB"
@@ -23,3 +28,8 @@ database_id = "REPLACE_WITH_D1_DATABASE_ID"
 name = "SHIPPING_RATE_LIMIT"
 namespace_id = "7895601"
 simple = { limit = 6, period = 60 }
+
+[[ratelimits]]
+name = "CHECKOUT_RATE_LIMIT"
+namespace_id = "7895602"
+simple = { limit = 5, period = 60 }

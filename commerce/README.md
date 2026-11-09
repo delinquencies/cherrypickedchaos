@@ -31,7 +31,11 @@ The Sandbox uses an 8.25% test tax on the item and shipping. This uses Square's 
 
 The preview handles signed `payment.created` and `payment.updated` events at `/sandbox/webhook` when `SQUARE_SANDBOX_WEBHOOK_KEY` and `SQUARE_SANDBOX_WEBHOOK_URL` are configured. It checks the raw-body signature against the configured notification URL and reads the payment from Square before marking it paid. The loopback preview can receive signed test replays. To test delivery from Square itself, use a separate HTTPS Sandbox environment.
 
-Before taking production payments, add fulfillment and verified tax rules, configure and test real webhook delivery, update sale inventory, and verify declines, refunds, and owner notifications. Keep production Square credentials in Worker secrets.
+## Live checkout
+
+The first live checkout accepts one item per order for Schulenburg pickup or verified Texas delivery. Confirm the Texas permit and location before using this configuration. Shippo validates delivery addresses and quotes USPS Ground Advantage. The store calculates 8.25% Texas tax on the item and shipping with half-cent amounts rounded up. Square Quick Pay charges the exact total. Use **Manage orders** and its CSV for the separate item, shipping, tax, and refund amounts.
+
+Set `SQUARE_LOCATION_ID`, add `SQUARE_ACCESS_TOKEN` and `SQUARE_WEBHOOK_KEY` as Worker secrets, and register `/square/webhook` in Square for `payment.created`, `payment.updated`, `refund.created`, and `refund.updated`. Deploy with `LIVE_CHECKOUT_ENABLED` set to `false`, test delivery from Square, and enable checkout only after the endpoint accepts a signed notification. Keep the scheduled trigger to reconcile expired holds. A verified payment marks the item sold. Handle refunds in Square, and use **Manage orders** for pickup and shipping details. Square sends buyer receipts and can notify the merchant when a payment arrives. Fulfill Texas shipments from the shop and purchase labels in Shippo.
 
 ## U.S. shipping estimates
 

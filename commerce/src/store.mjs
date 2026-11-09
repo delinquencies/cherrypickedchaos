@@ -1,5 +1,6 @@
-import { demoShippingCents, shippingCents, shippingOrigin, shippingRateMode } from './shipping.mjs';
+import { demoShippingCents, shippingCents, shippingOrigin, shippingRateMode, validateTexasAddress } from './shipping.mjs';
 import { cancelSandboxCheckout, checkSandboxPayment, getSandboxCheckout, handleSandboxWebhook, openSandboxCheckout, reserveSandboxCheckout, sandboxReady } from './square-sandbox.mjs';
+import { cancelOrder, checkOrder, liveCheckoutReady, liveOrder, liveWebhook, openOrder, reserveOrder } from './live-checkout.mjs';
 
 const imageLimit = 1_000_000;
 const itemId = '[a-f0-9-]{36}';
@@ -111,7 +112,7 @@ function shippingControl(item, id, ratesAvailable) {
   </details>`;
 }
 
-function bagDrawer(preview, showSamples) {
+function bagDrawer(preview, showSamples, live) {
   const storageKey = showSamples ? 'cpc-demo-bag' : preview ? 'cpc-preview-listing-bag' : 'cpc-shop-bag';
   return `<dialog class="bag-drawer" id="shop-bag" aria-labelledby="bag-title" aria-describedby="bag-note" data-storage-key="${storageKey}">
     <div class="bag-heading">
@@ -125,14 +126,14 @@ function bagDrawer(preview, showSamples) {
     <div class="bag-actions">
       <form action="/checkout" method="get" class="bag-checkout" hidden>
         <input type="hidden" name="items">
-        <button type="submit">${preview ? 'Checkout' : 'View order summary'}</button>
+        <button type="submit">${preview || live ? 'Checkout' : 'View order summary'}</button>
       </form>
       <form method="dialog"><button class="continue-shopping" type="submit">Continue shopping</button></form>
     </div>
   </dialog>`;
 }
 
-function storefront(items, preview, ratesAvailable) {
+function storefront(items, preview, ratesAvailable, live) {
   const showSamples = preview && items.length === 0;
   const finds = showSamples ? sampleFinds : items;
   const listedCategories = new Set(finds.map(item => item.category));
@@ -168,7 +169,7 @@ function storefront(items, preview, ratesAvailable) {
       </div>
     </section>
     <section class="container shop-finds" aria-label="Shop finds">
-      <p class="notice">${showSamples ? 'These sample finds and prices are for browsing. ' : ''}Online checkout is coming soon.</p>
+      <p class="notice">${showSamples ? 'These sample finds and prices are for browsing. ' : ''}${live ? 'Shop one find at a time. Pick up in Schulenburg or ship eligible finds within Texas.' : 'Online checkout is coming soon.'}</p>
       ${cards ? `
         <div class="lucky-bar">
           <p>Go on, have a little look!</p>
@@ -180,7 +181,7 @@ function storefront(items, preview, ratesAvailable) {
         <div class="grid">${cards}</div>
         <p class="empty-category" role="status" hidden>No finds in this category yet.</p>` : '<p>No finds have been published yet.</p>'}
     </section>
-    ${showBag ? bagDrawer(preview, showSamples) : ''}`, 200, { shop: true, showBag });
+    ${showBag ? bagDrawer(preview, showSamples, live) : ''}`, 200, { shop: true, showBag });
 }
 
 function editor(item = null) {
@@ -227,6 +228,7 @@ function manage(items, preview) {
     <h1>Manage listings.</h1>
     ${preview ? '<p class="notice">Local preview. Listings saved here stay on this computer.</p>' : ''}
     <a class="button" href="/manage/new">Add a find</a>
+    ${preview ? '' : '<a class="button" href="/manage/orders">View orders</a>'}
     <h2>Your finds</h2>
     ${rows ? `<ul class="listings">${rows}</ul>` : '<p>No listings yet. Add your first find and save it as a draft.</p>'}`);
 }
@@ -406,6 +408,147 @@ function checkoutFinds(listings, preview) {
   return preview && !listings.length ? sampleFinds : listings.filter(item => item.status === 'published');
 }
 
+function orderShippingLabel(order) {
+  if (!order.shipping_address) return 'Local pickup in Schulenburg';
+  const address = JSON.parse(order.shipping_address);
+  return escapeHtml([address.street1, address.street2, address.city, address.state + ' ' + address.zip].filter(Boolean).join(', '));
+}
+
+function liveOrderPage(order, message = '', status = 200) {
+  const path = '/pay/' + order.id;
+  const action = (name, label) => `<form action="${path}/${name}" method="post"><button type="submit">${label}</button></form>`;
+  const total = order.subtotal_cents + order.shipping_cents + order.tax_cents;
+  const controls = {
+    held: action('open', 'Continue to Square') + action('cancel', 'Release item'),
+    creating: action('open', 'Retry opening Square checkout'),
+    open: `<a class="button" href="${escapeHtml(order.square_url)}" rel="noreferrer">Pay securely with Square</a>` +
+      action('check', 'Check payment') + action('cancel', 'Cancel checkout'),
+    paid: `<p>Payment confirmed. Keep this page and your Square receipt for your records.</p>
+      ${order.shipping_address ? '<p>The shop will prepare your order for shipping.</p>' : '<p>Pick up at 621 Lyons Avenue in Schulenburg. <a href="https://www.cherrypickedchaos.com/#contact">Contact the shop</a> to arrange pickup.</p>'}
+      ${order.refunded_cents ? `<p>Refunded: ${currency.format(order.refunded_cents / 100)}</p>` : ''}`,
+    canceled: '<p>This checkout has closed. Return to the shop to start again.</p>'
+  };
+  return page('Your order', `
+    <a href="/">← Back to the shop</a><h1>Your order</h1>
+    <h2>${escapeHtml(order.title)}</h2>
+    <p>${orderShippingLabel(order)}</p>
+    <dl class="checkout-totals">
+      <div><dt>Item subtotal</dt><dd>${currency.format(order.subtotal_cents / 100)}</dd></div>
+      <div><dt>Shipping</dt><dd>${currency.format(order.shipping_cents / 100)}</dd></div>
+      <div><dt>Texas sales tax</dt><dd>${currency.format(order.tax_cents / 100)}</dd></div>
+      <div class="price"><dt>Total</dt><dd>${currency.format(total / 100)}</dd></div>
+    </dl>
+    <p>Order reference: ${order.id}</p>
+    ${message ? `<p role="status">${message}</p>` : ''}
+    <div class="actions">${controls[order.state]}</div>`, status);
+}
+
+function liveOrderForm(item, ratesAvailable) {
+  const fields = () => `<input type="hidden" name="item" value="${item.id}">
+    <input type="hidden" name="attempt" value="${crypto.randomUUID()}">
+    <label>Your name <input name="name" autocomplete="name" maxlength="100" required></label>`;
+  return `<form action="/pay" method="post" class="checkout-shipping">
+      ${fields()}
+      <button type="submit">Continue with local pickup</button>
+    </form>
+    ${item.ship_weight_lb && ratesAvailable ? `<form action="/pay" method="post" class="checkout-shipping">
+      ${fields()}
+      <input type="hidden" name="fulfillment" value="shipping">
+      <label>Texas street address <input name="street" autocomplete="address-line1" maxlength="100" required></label>
+      <label>Apartment or suite <input name="unit" autocomplete="address-line2" maxlength="100"></label>
+      <label>City, TX <input name="city" autocomplete="address-level2" maxlength="80" required></label>
+      <label>ZIP <input name="zip" autocomplete="postal-code" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" required></label>
+      <button type="submit">Confirm delivery and quote</button>
+    </form>` : ''}`;
+}
+
+async function handleLiveOrder(request, env, url) {
+  if (request.method === 'POST' && request.headers.get('Origin') !== url.origin) {
+    return new Response(null, { status: 403, headers: securityHeaders });
+  }
+  const db = env.STORE_DB;
+  if (url.pathname === '/pay' && request.method === 'POST' && liveCheckoutReady(env)) {
+    if (!(await env.CHECKOUT_RATE_LIMIT.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' })).success) {
+      return page('Try again shortly', '<h1>Too many checkout attempts.</h1><p>Wait a minute and try again.</p>', 429);
+    }
+    if (Number(request.headers.get('Content-Length')) > 8000) return new Response(null, { status: 413, headers: securityHeaders });
+    const form = await request.formData();
+    const id = getField(form, 'attempt');
+    const itemKey = getField(form, 'item');
+    const validId = new RegExp(`^${itemId}$`);
+    if (!validId.test(id) || !validId.test(itemKey)) return notFound();
+    let order = await liveOrder(db, id);
+    if (!order) {
+      const item = await db.prepare(`SELECT id, version, price_cents, ${packageColumns} FROM listings
+        WHERE id = ? AND status = 'published'`).bind(itemKey).first();
+      if (!item) return page('Find unavailable', '<h1>This find is no longer available.</h1><a href="/">Return to the shop</a>', 409);
+      const name = getField(form, 'name');
+      if (!name || name.length > 100) throw new ListingError('Enter your name to continue.');
+      let shipping;
+      if (getField(form, 'fulfillment') === 'shipping') {
+        const street1 = getField(form, 'street');
+        const street2 = getField(form, 'unit');
+        const city = getField(form, 'city');
+        const zip = getField(form, 'zip');
+        if (!item.ship_weight_lb || shippingRateMode(env, false) !== 'live' || !street1 || street1.length > 100 ||
+            street2.length > 100 || !city || city.length > 80 || !validShippingZip(zip)) {
+          throw new ListingError('Enter a complete Texas delivery address for a shippable item.');
+        }
+        const address = await validateTexasAddress({ street1, street2, city, zip }, env);
+        if (!address) throw new ListingError('Shippo could not verify that Texas address. Check the street, unit and ZIP.');
+        const cents = await shippingCents(item, address, env);
+        if (!cents) throw new ListingError('USPS Ground Advantage is unavailable for this box and address. Choose local pickup.');
+        shipping = { address, cents };
+      }
+      order = await reserveOrder(env, id, item, name, shipping);
+    }
+    return order?.listing_id === itemKey ? redirect('/pay/' + id) :
+      page('Find held', '<h1>This find is in another checkout.</h1><p>It may become available again if that checkout expires.</p><a href="/">Return to the shop</a>', 409);
+  }
+  const match = url.pathname.match(new RegExp(`^/pay/(${itemId})(?:/(open|check|cancel))?$`));
+  if (!match) return notFound();
+  const [, id, action] = match;
+  const order = await liveOrder(db, id);
+  if (!order) return notFound();
+  try {
+    if (request.method === 'GET' && !action) {
+      return liveOrderPage(url.searchParams.has('orderId') ? await checkOrder(env, order) : order);
+    }
+    if (request.method !== 'POST' || !action) return notFound();
+    if (action === 'open' && liveCheckoutReady(env)) await openOrder(env, order);
+    if (action === 'cancel') await cancelOrder(env, order);
+    if (action === 'check') {
+      const checked = await checkOrder(env, order);
+      return liveOrderPage(checked, checked.state === 'open' ? 'Square has not confirmed payment yet.' : '');
+    }
+    return redirect('/pay/' + id);
+  } catch {
+    return liveOrderPage(await liveOrder(db, id), 'Square could not confirm this action yet. Please try again.', 502);
+  }
+}
+
+async function manageOrders(db) {
+  const { results } = await db.prepare("SELECT * FROM live_orders WHERE state <> 'canceled' ORDER BY COALESCE(paid_at, '') DESC, expires_at DESC LIMIT 100").all();
+  const rows = results.map(order => `<li><div><strong>${escapeHtml(order.title)}</strong> · ${order.state}
+    <br>${escapeHtml(order.customer_name ?? '')} · ${orderShippingLabel(order)}
+    <br>Item ${currency.format(order.subtotal_cents / 100)} · Shipping ${currency.format(order.shipping_cents / 100)} · Tax ${currency.format(order.tax_cents / 100)}
+    ${order.refunded_cents ? ` · Refunded ${currency.format(order.refunded_cents / 100)}` : ''}
+    <br><small>${order.id}${order.paid_at ? ' · ' + escapeHtml(order.paid_at) : ''}</small></div>
+    ${order.state === 'paid' ? `<span>Square payment ${escapeHtml(order.square_payment_id)}</span>` : `<a href="/pay/${order.id}">Review checkout</a>`}</li>`).join('');
+  return page('Manage orders', `<a href="/manage">← All listings</a><h1>Orders</h1>
+    <p><a href="/manage/orders.csv">Download paid orders and sales tax</a></p>
+    ${rows ? `<ul class="listings">${rows}</ul>` : '<p>No orders yet.</p>'}`);
+}
+
+async function exportOrders(db) {
+  const { results } = await db.prepare(`SELECT id, paid_at, square_payment_id, subtotal_cents, shipping_cents, tax_cents, refunded_cents
+    FROM live_orders WHERE state = 'paid' ORDER BY paid_at DESC`).all();
+  const fields = ['id', 'paid_at', 'square_payment_id', 'subtotal_cents', 'shipping_cents', 'tax_cents', 'refunded_cents'];
+  const csv = [fields.join(','), ...results.map(row => fields.map(field => '"' + String(row[field] ?? '').replaceAll('"', '""') + '"').join(','))].join('\r\n');
+  return new Response(csv + '\r\n', { headers: { ...securityHeaders,
+    'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': 'attachment; filename="cherry-picked-chaos-orders.csv"' } });
+}
+
 function sandboxCheckoutPage(checkout, message = '', status = 200) {
   const path = '/sandbox/checkout/' + checkout.id;
   const button = (action, label) => `<form method="post" action="${path}/${action}"><button type="submit">${label}</button></form>`;
@@ -531,11 +674,12 @@ async function checkoutSummary(env, params, preview, clientIp) {
     mode === 'test' ? 'Shippo test rates are estimated for each packed box.' : 'Shipping is estimated for each packed box.';
   const hasQuote = quote?.cents != null;
   const postage = quote?.cents ?? 0;
+  const live = !preview && liveCheckoutReady(env);
   const subtotal = items.reduce((sum, item) => sum + item.price_cents, 0);
   const pickupUrl = '/checkout?items=' + encodeURIComponent(ids.join(','));
 
   return page(title, `${heading}
-    <p class="notice">Online orders and payments are coming soon. This is an estimate.</p>
+    <p class="notice">${live ? 'Choose pickup or Texas delivery to review your final total and sales tax.' : 'Online orders and payments are coming soon. This is an estimate.'}</p>
     <div class="checkout-grid">
       <section class="quote-panel" aria-labelledby="delivery-title">
         <h2 id="delivery-title">Pickup or shipping</h2>
@@ -559,6 +703,7 @@ async function checkoutSummary(env, params, preview, clientIp) {
           <div><dt>${hasQuote ? shippingLabel : 'Local pickup'}</dt><dd>${currency.format(postage / 100)}</dd></div>
           <div class="price"><dt>Estimated total before tax</dt><dd>${currency.format((subtotal + postage) / 100)}</dd></div>
         </dl>
+        ${live ? items.length === 1 ? liveOrderForm(items[0], Boolean(mode)) : '<p>Checkout supports one find at a time. Return to your bag to choose one.</p>' : ''}
         ${preview && sandboxReady(env) && items.length === 1 ? `
           <form action="/sandbox/checkout" method="post">
             <input type="hidden" name="item" value="${escapeHtml(ids[0])}">
@@ -616,6 +761,10 @@ export function createStore(isAdmin, { preview = false } = {}) {
       const adminRoute = path === '/manage' || path.startsWith('/manage/');
       const db = env.STORE_DB;
       try {
+        if (!preview && path === '/square/webhook') return await liveWebhook(request, env);
+        if (!preview && env.SQUARE_ACCESS_TOKEN && (path === '/pay' || path.startsWith('/pay/'))) {
+          return await handleLiveOrder(request, env, url);
+        }
         if (preview && sandboxReady(env) && path === '/sandbox/webhook') return await handleSandboxWebhook(request, env);
         if (preview && sandboxReady(env) && (path === '/sandbox/checkout' || path.startsWith('/sandbox/checkout/'))) {
           return await handleSandboxCheckout(request, env, url);
@@ -626,7 +775,7 @@ export function createStore(isAdmin, { preview = false } = {}) {
 
         if (request.method === 'GET') {
           if (path === '/') {
-            return storefront(await shopListings(db), preview, Boolean(shippingRateMode(env, preview)));
+            return storefront(await shopListings(db), preview, Boolean(shippingRateMode(env, preview)), !preview && liveCheckoutReady(env));
           }
           const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
           if (path === '/checkout') return await checkoutSummary(env, url.searchParams, preview, clientIp);
@@ -636,6 +785,8 @@ export function createStore(isAdmin, { preview = false } = {}) {
             const { results } = await db.prepare('SELECT id, title, price_cents, status, category FROM listings ORDER BY updated_at DESC').all();
             return manage(results, preview);
           }
+          if (path === '/manage/orders' && !preview) return await manageOrders(db);
+          if (path === '/manage/orders.csv' && !preview) return await exportOrders(db);
           if (path === '/manage/new') return page('New listing', '<a href="/manage">← All listings</a><h1>Add a find.</h1>' + editor(), 200, { editor: true });
           const item = path.match(new RegExp(`^/manage/item/(${itemId})(/delete)?$`));
           if (item) {
@@ -667,7 +818,11 @@ export function createStore(isAdmin, { preview = false } = {}) {
         return notFound();
       } catch (error) {
         if (error instanceof ListingError) {
+          if (path === '/pay') return page('Check your checkout details', `<h1>Check your checkout details.</h1><p>${escapeHtml(error.message)}</p><a href="/">Return to the shop</a>`, 400);
           return page('Check your listing', `<h1>Check your listing.</h1><p>${escapeHtml(error.message)}</p><a href="/manage">Return to your listings →</a>`, 400);
+        }
+        if (error.message?.includes('Listing has an active checkout')) {
+          return page('Checkout in progress', '<h1>This find is in checkout.</h1><p>Review the order before changing the listing.</p><a href="/manage/orders">View orders →</a>', 409);
         }
         console.error('Store request failed:', error.name);
         return page('Shop unavailable', '<h1>Give us a moment.</h1><p>The shop is having trouble loading. Please try again shortly.</p>', 503);
