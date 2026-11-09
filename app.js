@@ -18,11 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   // Preserve former signup and biography deep links after simplifying the page.
   function legacyLinks() {
-    if (['#cherry-bombs', '#cherry-drops', '#vip'].includes(location.hash)) {
-      if (!document.getElementById('contact')) return;
-      history.replaceState(null, '', '#contact');
-      document.getElementById('contact').scrollIntoView({behavior:'auto'});
-      document.getElementById('contact-vip')?.focus({preventScroll:true});
+    if (['#cherry-bombs', '#vip'].includes(location.hash)) {
+      const newsletter = document.getElementById('cherry-drops');
+      if (!newsletter) return;
+      history.replaceState(null, '', '#cherry-drops');
+      newsletter.scrollIntoView({behavior:'auto'});
+      document.getElementById('newsletter-title')?.focus({preventScroll:true});
     }
     if (location.hash === '#about' && document.body.classList.contains('landing-page') && !document.body.classList.contains('about-page')) location.replace('about.html');
   }

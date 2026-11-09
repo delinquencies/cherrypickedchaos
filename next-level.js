@@ -63,32 +63,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const form = document.querySelector('[data-contact-email]');
   const message = form?.querySelector('[name="message"]');
-  const vip = form?.querySelector('[name="vip"]');
-  function validateMessage() {
-    message?.setCustomValidity(!message.value.trim() && !vip.checked ? 'Please add a message, or tick the box to request Cherry Drops VIP emails.' : '');
-  }
   form?.addEventListener('submit', event => {
     event.preventDefault();
-    validateMessage();
+    message.setCustomValidity(message.value.trim() ? '' : 'Please add a message.');
     if (!form.reportValidity()) return;
     const fields = new FormData(form);
     const name = String(fields.get('name') || '').trim();
     const email = String(fields.get('email') || '').trim();
     const text = String(fields.get('message') || '').trim();
-    const wantsVIP = fields.get('vip') === 'yes';
-    const lines = ['Hi Melissa and Candy!', '', 'Name: ' + name, 'Email: ' + email, ''];
-    if (text) lines.push('Message:', text, '');
-    if (wantsVIP) lines.push('Cherry Drops VIP signup requested: YES.', 'I consent to emails about shop news, finds, and opening dates. I can ask to leave the list anytime.');
-    const subject = wantsVIP ? 'Hello + Cherry Drops VIP request' : 'Hello from the Cherry Picked Chaos website';
+    const lines = ['Hi Melissa and Candy!', '', 'Name: ' + name, 'Email: ' + email, '', 'Message:', text];
+    const subject = 'Hello from the Cherry Picked Chaos website';
     const href = form.getAttribute('action') + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join('\n'));
     const response = form.querySelector('.form-response');
-    response.replaceChildren(document.createTextNode('Your email is ready. Review and send it in your email app.' + (wantsVIP ? ' Your VIP request is included; no automatic subscription has been created.' : '') + ' '));
+    response.replaceChildren('Your email is ready. Review and send it in your email app. ');
     const retry = document.createElement('a');retry.href = href;retry.textContent = 'Open my prepared email →';
     response.append(retry);response.hidden = false;
     window.location.href = href;
   });
   form?.addEventListener('input', () => { message.setCustomValidity(''); form.querySelector('.form-response').hidden = true; });
-  vip?.addEventListener('change', () => { message.setCustomValidity(''); form.querySelector('.form-response').hidden = true; });
 
   const secret = document.querySelector('.secret-cherry');
   const notes = ['You found the cherry on top. Excellent snooping.', 'Some people collect stamps. We collect “just one more thing.”', 'Official diagnosis: a very good eye.'];

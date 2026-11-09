@@ -6,7 +6,9 @@ Static HTML, CSS, and JavaScript website. Open index.html through a local static
 
 Freshly Picked shows all 21 shop photos from the client's CHERRYPICKED PICS folder. Swipe or use the arrows on the gallery, or focus the photo strip and use Left, Right, Home, and End. The photos depict past displays.
 
-The Contact form, including optional Cherry Drops VIP requests, and the estate inquiry form prepare email drafts addressed to both owners. Visitors send the drafts from their own email app. The public shop inbox remains available as a direct contact link. This update supersedes the earlier gallery and form notes below.
+The Contact and estate inquiry forms prepare email drafts addressed to both owners. Visitors send the drafts from their own email app. The public shop inbox remains available as a direct contact link.
+
+Cherry Drops VIP has its own EmailOctopus embed at `index.html#cherry-drops`, with a request-by-email fallback. Old signup links go to the newsletter section. These details supersede the earlier gallery and form notes below.
 
 ## Current experience
 

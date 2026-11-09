@@ -186,3 +186,22 @@
 @media (min-width: 1024px) {
   .gallery-track { --gallery-columns: 3; }
 }
+
+.newsletter-panel {
+  margin-top: 32px;
+  background: #fff4eb;
+}
+.newsletter-panel h2 {
+  margin: 8px 0 12px;
+  color: var(--cherry);
+}
+.newsletter-panel > p:not(.form-note) {
+  color: var(--muted);
+}
+.newsletter-fallback {
+  margin: 16px 0 0;
+}
+.newsletter-fallback a {
+  color: var(--cherry);
+  font-weight: 800;
+}
