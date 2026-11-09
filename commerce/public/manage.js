@@ -1,6 +1,21 @@
 const editor = document.querySelector('.editor');
 const input = editor?.querySelector('[name="photo"]');
 const submit = editor?.querySelector('button[type="submit"]');
+const fulfillment = editor?.querySelector('[name="fulfillment"]');
+const packageFields = editor?.querySelector('.package-fields');
+
+if (fulfillment && packageFields) {
+  const fields = packageFields.querySelectorAll('input');
+  const togglePackage = () => {
+    const ships = fulfillment.value === 'ship';
+    packageFields.hidden = !ships;
+    packageFields.disabled = !ships;
+    fields.forEach(field => { field.required = ships; });
+  };
+  fulfillment.addEventListener('change', togglePackage);
+  window.addEventListener('pageshow', togglePackage);
+  togglePackage();
+}
 
 input?.addEventListener('change', () => input.setCustomValidity(''));
 editor?.addEventListener('submit', async event => {

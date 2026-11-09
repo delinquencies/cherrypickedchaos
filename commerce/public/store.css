@@ -125,6 +125,14 @@ h1 { margin: .15em 0; font: clamp(2.4rem, 6vw, 4.5rem)/1.14 var(--display); colo
 .description { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .89rem; margin: 0 0 16px; }
 .price { margin: auto 0 0; font-weight: 900; color: var(--cherry); }
 .price small { display: block; color: var(--ink); font-size: .72rem; font-weight: 600; }
+.fulfillment-note, .shipping { margin: 12px 0 0; font-size: .85rem; }
+.shipping { border-top: 1px dashed var(--line); }
+.shipping summary { padding-block: 11px; color: var(--cherry); font-weight: 800; cursor: pointer; }
+.shipping form label { display: block; margin-bottom: 4px; font-weight: 750; }
+.shipping-row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; }
+.shipping-row input { flex: 1 1 6ch; min-height: 44px; }
+.shipping-row button { max-width: 100%; padding: 8px 10px; }
+.shipping .hint { margin-bottom: 0; }
 .card.lucky-pick { outline: 4px dotted var(--cherry); outline-offset: 5px; }
 .card.lucky-pick::after {
   content: 'Lucky pick!';
@@ -145,16 +153,20 @@ h1 { margin: .15em 0; font: clamp(2.4rem, 6vw, 4.5rem)/1.14 var(--display); colo
 
 .workspace { max-width: 780px; padding-block: 38px 68px; }
 .workspace > .eyebrow { margin: 0; }
-.editor, .listings {
+.editor, .listings, .quote-panel {
   max-width: 660px;
   background: var(--paper);
   border: 2px solid var(--line);
   border-radius: 14px 23px 16px 22px;
   box-shadow: 5px 6px 0 #eec9c6;
 }
-.editor { padding: 20px; margin: 18px 0; }
+.editor, .quote-panel { padding: 20px; margin: 18px 0; }
+.quote-panel h2 { margin-top: 0; }
 .editor label { display: grid; gap: 4px; margin-bottom: 16px; font-weight: 750; }
-.editor input, .editor textarea, .editor select { min-width: 0; width: 100%; padding: 10px; font: inherit; color: var(--ink); border: 1px solid #876f65; border-radius: 8px; background: white; }
+.editor input, .editor textarea, .editor select, .shipping-row input { min-width: 0; width: 100%; padding: 10px; font: inherit; color: var(--ink); border: 1px solid #876f65; border-radius: 8px; background: white; }
+.package-fields { min-inline-size: 0; margin: 0 0 16px; padding: 0 12px; border: 1px dashed #b94761; border-radius: 10px; }
+.package-fields legend { padding-inline: 5px; font-weight: 800; }
+.package-fields > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); gap: 0 12px; }
 .hint { font-size: .88rem; }
 .editor-photo { max-width: min(100%, 350px); max-height: 300px; margin-top: 18px; border-radius: 10px; }
 .button, button { display: inline-block; min-height: 44px; padding: 10px 18px; border: 0; border-radius: 50px; background: var(--cherry); color: white; font: inherit; font-weight: 750; text-decoration: none; cursor: pointer; }

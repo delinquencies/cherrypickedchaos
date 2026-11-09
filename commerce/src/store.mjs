@@ -1,5 +1,14 @@
+import { hasLiveShipping, shippingCents, shippingOrigin } from './shipping.mjs';
+
 const imageLimit = 1_000_000;
 const itemId = '[a-f0-9-]{36}';
+const packageColumns = 'ship_weight_lb, ship_length_in, ship_width_in, ship_height_in';
+const packageFields = [
+  ['ship_weight_lb', 'Packed weight (lb)', 0.01, 70],
+  ['ship_length_in', 'Box length (in)', 1, 108],
+  ['ship_width_in', 'Box width (in)', 1, 108],
+  ['ship_height_in', 'Box height (in)', 1, 108]
+];
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const categories = {
   wear: 'Vintage Wear',
@@ -74,17 +83,36 @@ function redirect(path) {
 }
 
 const sampleFinds = [
-  { title: 'Chainstitch Embroidered Denim Jacket', image: 'jacket', price_cents: 18500, category: 'wear', description: 'Western floral chainstitch on well-worn denim.' },
+  { title: 'Chainstitch Embroidered Denim Jacket', image: 'jacket', price_cents: 18500, category: 'wear', description: 'Western floral chainstitch on well-worn denim.', ship_weight_lb: 3, ship_length_in: 14, ship_width_in: 10, ship_height_in: 4 },
   { title: 'Texas Salt-Glazed Stoneware Crock', image: 'crock', price_cents: 14500, category: 'stoneware', description: 'Cobalt-blue folk floral details and old mercantile charm.' },
   { title: 'Vintage Texas Gasoline Porcelain Sign', image: 'sign', price_cents: 32000, category: 'americana', description: 'Weathered roadside style with collectible Texas character.' },
   { title: 'Primitive Pine Dough Bowl & Scoop', image: 'bowl', price_cents: 21000, category: 'primitives', description: 'Rustic hand-carved wood with a warm aged patina.' }
 ];
 
-function storefront(items, preview) {
+function shippingControl(item, id, ratesAvailable) {
+  if (item.status === 'sold') return '';
+  if (!item.ship_weight_lb) return '<p class="fulfillment-note">Local pickup</p>';
+  if (!ratesAvailable) return '<p class="fulfillment-note">Local pickup · U.S. shipping rates coming soon</p>';
+  return `<details class="shipping">
+    <summary>Calculate U.S. shipping</summary>
+    <form action="/shipping/${id}" method="get">
+      <label for="zip-${id}">Delivery ZIP code</label>
+      <div class="shipping-row">
+        <input id="zip-${id}" name="zip" type="text" inputmode="numeric" autocomplete="shipping postal-code" pattern="[0-9]{5}" maxlength="5" required>
+        <button type="submit">Get estimate</button>
+      </div>
+    </form>
+    <p class="hint">Local pickup is also available.</p>
+  </details>`;
+}
+
+function storefront(items, preview, ratesAvailable) {
   const showSamples = preview && items.length === 0;
   const finds = showSamples ? sampleFinds : items;
-  const cards = finds.map(item => `
-    <article class="card" tabindex="-1" data-category="${item.category}">
+  const cards = finds.map(item => {
+    const id = showSamples ? 'sample-' + item.image : item.id;
+    return `
+    <article class="card" id="find-${id}" tabindex="-1" data-category="${item.category}">
       <div class="card-photo">
         <img src="${showSamples ? '/samples/' + item.image + '.webp' : '/photo/' + item.id + '?v=' + item.version}" alt="${escapeHtml(item.title)}" loading="lazy">
         <span class="tag">${showSamples ? 'Sample listing' : item.status === 'sold' ? 'Sold' : 'One of a kind'}</span>
@@ -94,8 +122,10 @@ function storefront(items, preview) {
         <h2>${escapeHtml(item.title)}</h2>
         <p class="description">${escapeHtml(item.description)}</p>
         <p class="price">${currency.format(item.price_cents / 100)}${showSamples ? '<small>Illustrative price</small>' : ''}</p>
+        ${shippingControl(item, id, ratesAvailable)}
       </div>
-    </article>`).join('');
+    </article>`;
+  }).join('');
   const filters = categoriesByName
     .map(([category, label]) => `<button type="button" data-filter="${category}" aria-pressed="false">${escapeHtml(label)}</button>`).join('');
   return page('Shop Selected Finds', `
@@ -127,6 +157,9 @@ function editor(item = null) {
   const id = editing ? item.id : '';
   const categoryOptions = categoriesByName.map(([value, label]) =>
     `<option value="${value}"${item?.category === value ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('');
+  const ships = Boolean(item?.ship_weight_lb);
+  const packageInputs = packageFields.map(([name, label, min, max]) => `
+    <label>${label}<input name="${name}" type="number" inputmode="decimal" min="${min}" max="${max}" step="0.01" value="${item?.[name] ?? ''}"></label>`).join('');
   return `
     <form class="editor" method="post" enctype="multipart/form-data" action="/manage/save">
       <input type="hidden" name="id" value="${id}">
@@ -135,6 +168,15 @@ function editor(item = null) {
       <label>Category <select name="category" required><option value="">Choose a category</option>${categoryOptions}</select></label>
       <label>Description and condition <textarea name="description" required maxlength="2000" rows="5">${escapeHtml(item?.description ?? '')}</textarea></label>
       <label>Price in dollars <input name="price" type="number" inputmode="decimal" min="0.01" max="99999.99" step="0.01" required value="${editing ? (item.price_cents / 100).toFixed(2) : ''}"></label>
+      <label>Fulfillment <select name="fulfillment">
+        <option value="pickup">Local pickup only</option>
+        <option value="ship"${ships ? ' selected' : ''}>Local pickup or U.S. shipping</option>
+      </select></label>
+      <fieldset class="package-fields" aria-describedby="package-help">
+        <legend>Shipping package</legend>
+        <p id="package-help" class="hint">For shippable finds, enter the weight and outside dimensions of the packed box, including padding.</p>
+        <div>${packageInputs}</div>
+      </fieldset>
       <label>${editing ? 'Replace photo (optional)' : 'Photo'}
         <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" aria-describedby="photo-help" ${editing ? '' : 'required'}>
       </label>
@@ -197,6 +239,25 @@ function validateDetails(form) {
   return { title, description, priceCents };
 }
 
+function validatePackage(form) {
+  const fulfillment = getField(form, 'fulfillment');
+  if (fulfillment === '' || fulfillment === 'pickup') return [null, null, null, null];
+  if (fulfillment !== 'ship') throw new ListingError('Choose a valid fulfillment option.');
+  const [weight, ...dimensions] = packageFields.map(([name, , min, max]) => {
+    const raw = getField(form, name);
+    const value = Number(raw);
+    if (!/^(?:\d{1,3}(?:\.\d{1,2})?|\.\d{1,2})$/.test(raw) || value < min || value > max) {
+      throw new ListingError('Enter the packed weight and all three box dimensions within the displayed limits.');
+    }
+    return value;
+  });
+  const [length, width, height] = dimensions.sort((a, b) => b - a);
+  if (Math.round((length + 2 * (width + height)) * 100) > 13000) {
+    throw new ListingError('The longest side plus the distance around the box must be 130 inches or less.');
+  }
+  return [weight, length, width, height];
+}
+
 async function readPhoto(form) {
   const file = form.get('photo');
   if (!(file instanceof File) || !file.size) return null;
@@ -217,24 +278,28 @@ async function saveListing(db, form) {
   const { title, description, priceCents } = validateDetails(form);
   const category = getField(form, 'category') || null;
   if (category !== null && !Object.hasOwn(categories, category)) throw new ListingError('Choose a valid category.');
+  const packageValues = validatePackage(form);
   const photo = await readPhoto(form);
   if (!id) {
     if (!photo) throw new ListingError('Choose a photo for the listing.');
     const newId = crypto.randomUUID();
     await db.prepare(`
-      INSERT INTO listings (id, title, description, price_cents, category, image_mime, image, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(newId, title, description, priceCents, category ?? 'other', photo.mime, photo.bytes, new Date().toISOString()).run();
+      INSERT INTO listings (id, title, description, price_cents, category, image_mime, image, updated_at, ${packageColumns})
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(newId, title, description, priceCents, category ?? 'other', photo.mime, photo.bytes, new Date().toISOString(), ...packageValues).run();
     return redirect('/manage/item/' + newId);
   }
   if (!new RegExp(`^${itemId}$`).test(id) || !Number.isInteger(version) || version < 1) {
     throw new ListingError('This listing could not be updated.');
   }
   const photoFields = photo ? ', image_mime = ?, image = ?' : '';
-  const values = photo ? [photo.mime, photo.bytes] : [];
+  const values = [];
+  if (photo) values.push(photo.mime, photo.bytes);
+  const shippingFields = form.has('fulfillment') ? ', ship_weight_lb = ?, ship_length_in = ?, ship_width_in = ?, ship_height_in = ?' : '';
+  if (shippingFields) values.push(...packageValues);
   const result = await db.prepare(`
     UPDATE listings SET title = ?, description = ?, price_cents = ?, category = COALESCE(?, category), updated_at = ?,
-      version = version + 1 ${photoFields} WHERE id = ? AND version = ?
+      version = version + 1 ${photoFields} ${shippingFields} WHERE id = ? AND version = ?
   `).bind(title, description, priceCents, category, new Date().toISOString(), ...values, id, version).run();
   if (!result.meta.changes) return staleListing();
   return redirect('/manage/item/' + id);
@@ -265,6 +330,47 @@ function notFound() {
   return page('Page not found', '<h1>This page wandered off.</h1><a href="/">Back to the shop →</a>', 404);
 }
 
+async function shippingEstimate(id, zip, env, preview) {
+  const sample = preview && sampleFinds.find(find => id === 'sample-' + find.image);
+  const item = sample || (new RegExp(`^${itemId}$`).test(id) && await env.STORE_DB.prepare(`
+    SELECT title, ${packageColumns} FROM listings WHERE id = ? AND status = 'published'
+  `).bind(id).first());
+  if (!item?.ship_weight_lb) return notFound();
+
+  const back = `<a href="/#find-${id}">← Back to this find</a>`;
+  if (!/^\d{5}$/.test(zip) || zip === '00000') {
+    return page('Check the delivery ZIP', `${back}<h1>Check the delivery ZIP.</h1><p>Enter a five-digit U.S. ZIP code.</p>`, 400);
+  }
+
+  const sampleRate = preview && !hasLiveShipping(env);
+  let cents = sampleRate ? 1250 : null;
+  let status = 200;
+  let message = 'A rate is unavailable for this ZIP and package. Check the ZIP code or choose local pickup.';
+  if (hasLiveShipping(env)) {
+    try {
+      cents = await shippingCents(item, zip, env);
+    } catch {
+      status = 503;
+      message = 'The carrier rate lookup is temporarily unavailable. Try again shortly.';
+    }
+  } else if (!sampleRate) {
+    status = 503;
+    message = 'U.S. shipping rates are coming soon. Local pickup is available.';
+  }
+
+  return page('Shipping estimate', `
+    ${back}
+    <h1>Shipping estimate.</h1>
+    <section class="quote-panel" aria-label="Shipping estimate details">
+      <h2>${escapeHtml(item.title)}</h2>
+      <p>From Schulenburg, TX ${shippingOrigin} to ZIP ${zip}</p>
+      ${cents === null ? `<p>${message}</p>` : `<p class="price">${currency.format(cents / 100)} · USPS Ground Advantage</p>`}
+      ${sampleRate ? '<p class="hint">Preview only. This example amount stays the same for every ZIP.</p>' : ''}
+      ${sampleRate || cents === null ? `<p class="hint">Packed box: ${item.ship_weight_lb} lb, ${item.ship_length_in} × ${item.ship_width_in} × ${item.ship_height_in} in. <a href="https://postcalc.usps.com/">Check postage at USPS</a>.</p>` : ''}
+      <p class="hint">Postage only. Local pickup is also available. Online checkout is coming soon.</p>
+    </section>`, status);
+}
+
 export function createStore(isAdmin, { preview = false } = {}) {
   return {
     async fetch(request, env) {
@@ -280,11 +386,13 @@ export function createStore(isAdmin, { preview = false } = {}) {
         if (request.method === 'GET') {
           if (path === '/') {
             const { results } = await db.prepare(`
-              SELECT id, title, description, price_cents, status, version, category FROM listings
+              SELECT id, title, description, price_cents, status, version, category, ${packageColumns} FROM listings
               WHERE status IN ('published', 'sold') ORDER BY status, updated_at DESC
             `).all();
-            return storefront(results, preview);
+            return storefront(results, preview, preview || hasLiveShipping(env));
           }
+          const shipping = path.match(/^\/shipping\/([a-z0-9-]+)$/);
+          if (shipping) return await shippingEstimate(shipping[1], url.searchParams.get('zip') ?? '', env, preview);
           if (path === '/manage') {
             const { results } = await db.prepare('SELECT id, title, price_cents, status, category FROM listings ORDER BY updated_at DESC').all();
             return manage(results, preview);
@@ -292,7 +400,7 @@ export function createStore(isAdmin, { preview = false } = {}) {
           if (path === '/manage/new') return page('New listing', '<a href="/manage">← All listings</a><h1>Add a find.</h1>' + editor(), 200, { editor: true });
           const item = path.match(new RegExp(`^/manage/item/(${itemId})$`));
           if (item) {
-            const record = await db.prepare('SELECT id, title, description, price_cents, status, version, category FROM listings WHERE id = ?').bind(item[1]).first();
+            const record = await db.prepare(`SELECT id, title, description, price_cents, status, version, category, ${packageColumns} FROM listings WHERE id = ?`).bind(item[1]).first();
             return record ? editPage(record) : notFound();
           }
           const image = path.match(new RegExp(`^/(?:manage/)?photo/(${itemId})$`));
