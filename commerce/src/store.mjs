@@ -23,6 +23,8 @@ const categories = {
   'crafts-sewing': 'Crafts & Sewing',
   other: 'Other Finds'
 };
+const categoriesByName = Object.entries(categories)
+  .sort(([, left], [, right]) => left.localeCompare(right, 'en-US'));
 const securityHeaders = {
   'Cache-Control': 'no-store',
   'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
@@ -94,7 +96,7 @@ function storefront(items, preview) {
         <p class="price">${currency.format(item.price_cents / 100)}${showSamples ? '<small>Illustrative price</small>' : ''}</p>
       </div>
     </article>`).join('');
-  const filters = Object.entries(categories)
+  const filters = categoriesByName
     .map(([category, label]) => `<button type="button" data-filter="${category}" aria-pressed="false">${escapeHtml(label)}</button>`).join('');
   return page('Shop Selected Finds', `
     <section class="shop-hero">
@@ -123,7 +125,7 @@ function storefront(items, preview) {
 function editor(item = null) {
   const editing = item !== null;
   const id = editing ? item.id : '';
-  const categoryOptions = Object.entries(categories).map(([value, label]) =>
+  const categoryOptions = categoriesByName.map(([value, label]) =>
     `<option value="${value}"${item?.category === value ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('');
   return `
     <form class="editor" method="post" enctype="multipart/form-data" action="/manage/save">
