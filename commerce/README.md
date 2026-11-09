@@ -25,7 +25,11 @@ The local editor is open for testing on loopback and uses a local database. When
 
 ## Checkout before launch
 
-The demo bag opens a local checkout preview with pickup, an example shipping estimate when all items can ship, and an order summary. The preview does not place orders or collect payment details. Once the shop has Square Sandbox access, add single-item checkout with Square-hosted card fields. The server should price from the listing, re-quote shipping from the delivery address if selected, atomically hold the item, and use a stable idempotency key for the payment. Verify Square's completed payment and match it to the order before recording the sale and notifying both owners. Keep holds pending while the payment outcome is uncertain. Confirm declines, duplicate attempts, concurrent buyers, refunds, and the two owner notifications in Sandbox before enabling real charges. Configure the production Square credentials as Worker secrets.
+The local preview supports a one-item pickup test with a Square-hosted Sandbox payment link. In the ignored `commerce/.dev.vars` file, set `SQUARE_SANDBOX_ACCESS_TOKEN` and `SQUARE_SANDBOX_LOCATION_ID`. Apply the local migrations again with `npm run prepare:preview`, then start the preview. Add one find to the bag, choose pickup, and select **Start Square Sandbox pickup test**. Open the generated test link and use Square's test panel. Return to the preview and choose **Check payment status** to reconcile the payment.
+
+The Sandbox uses an 8.25% test tax. The server holds one item per checkout and retries Square link creation using the same request ID. If the payment outcome is uncertain, the item stays held. Canceling releases the hold after Square confirms cancellation. Confirmed test payments are recorded in the local checkout table.
+
+Before taking production payments, add fulfillment and verified tax rules, confirm payment and cancellation through webhooks, update sale inventory, and verify declines, refunds, and owner notifications. For shipping, quote from the buyer's delivery address. Keep production Square credentials in Worker secrets.
 
 ## U.S. shipping estimates
 

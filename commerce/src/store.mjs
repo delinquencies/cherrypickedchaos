@@ -1,4 +1,5 @@
 import { demoShippingCents, shippingCents, shippingOrigin, shippingRateMode } from './shipping.mjs';
+import { cancelSandboxCheckout, checkSandboxPayment, getSandboxCheckout, openSandboxCheckout, reserveSandboxCheckout, sandboxReady } from './square-sandbox.mjs';
 
 const imageLimit = 1_000_000;
 const itemId = '[a-f0-9-]{36}';
@@ -401,6 +402,73 @@ function validShippingZip(zip) {
   return /^\d{5}$/.test(zip) && zip !== '00000';
 }
 
+function checkoutFinds(listings, preview) {
+  return preview && !listings.length ? sampleFinds : listings.filter(item => item.status === 'published');
+}
+
+function sandboxCheckoutPage(checkout, message = '', status = 200) {
+  const path = '/sandbox/checkout/' + checkout.id;
+  const button = (action, label) => `<form method="post" action="${path}/${action}"><button type="submit">${label}</button></form>`;
+  const controls = {
+    reserved: button('open', 'Prepare Square test payment') + button('cancel', 'Release test hold'),
+    creating: button('open', 'Retry preparing test payment'),
+    open: `<a class="button" href="${escapeHtml(checkout.square_url)}" target="_blank" rel="noopener noreferrer">Open Square Sandbox checkout</a>` +
+      button('check', 'Check payment status') + button('cancel', 'Cancel test checkout'),
+    paid: '<p>Square confirmed the Sandbox payment.</p>',
+    canceled: '<p>Test checkout canceled. The item is available again.</p>'
+  };
+  const total = checkout.total_cents == null ? '' :
+    `<p>Sandbox sales tax: ${currency.format((checkout.total_cents - checkout.price_cents) / 100)}</p>
+     <p>Test total: <strong>${currency.format(checkout.total_cents / 100)}</strong></p>`;
+  return page('Square Sandbox checkout', `
+    <a href="/">← Back to the preview shop</a>
+    <h1>Square Sandbox checkout</h1>
+    <p class="notice">Local pickup test. Use a Square Sandbox test card.</p>
+    <h2>${escapeHtml(checkout.title)}</h2>
+    <p>Item subtotal: ${currency.format(checkout.price_cents / 100)}</p>${total}
+    ${message ? `<p role="status">${message}</p>` : ''}
+    <div class="actions">${controls[checkout.state]}</div>`, status);
+}
+
+async function handleSandboxCheckout(request, env, url) {
+  const db = env.STORE_DB;
+  const start = url.pathname === '/sandbox/checkout';
+  const match = url.pathname.match(/^\/sandbox\/checkout\/([a-f0-9-]{36})(?:\/(open|check|cancel))?$/);
+  if (request.method === 'POST' && request.headers.get('Origin') !== url.origin) {
+    return new Response(null, { status: 403, headers: securityHeaders });
+  }
+  if (start && request.method === 'POST') {
+    const form = await request.formData();
+    const id = getField(form, 'attempt');
+    const itemKey = getField(form, 'item');
+    if (!new RegExp(`^${itemId}$`).test(id)) return notFound();
+    const finds = checkoutFinds(await shopListings(db), true);
+    const item = finds.find(find => (find.id ?? find.image) === itemKey);
+    const checkout = item && await reserveSandboxCheckout(env, id, item);
+    return checkout?.item_key === itemKey ? redirect('/sandbox/checkout/' + id) :
+      page('Find unavailable', '<h1>This find is unavailable for a test checkout.</h1><a href="/">Return to the preview shop</a>', 409);
+  }
+  if (!match) return notFound();
+  const [, id, action] = match;
+  const checkout = await getSandboxCheckout(db, id);
+  if (!checkout) return notFound();
+  if (request.method === 'GET' && !action) return sandboxCheckoutPage(checkout);
+  if (request.method !== 'POST' || !action) return notFound();
+
+  try {
+    if (action === 'open') await openSandboxCheckout(env, checkout);
+    if (action === 'cancel') await cancelSandboxCheckout(env, checkout);
+    if (action === 'check') {
+      const checked = await checkSandboxPayment(env, checkout);
+      return sandboxCheckoutPage(checked, checked.state === 'open' ? 'Square has not confirmed payment yet.' : '');
+    }
+    return redirect('/sandbox/checkout/' + id);
+  } catch {
+    const current = await getSandboxCheckout(db, id);
+    return sandboxCheckoutPage(current, 'Square could not confirm this action. The item is still held. Try again.', 502);
+  }
+}
+
 async function quoteShipping(items, zip, env, mode, clientIp) {
   if (mode === 'example') return { cents: demoShippingCents * items.length, status: 200 };
   if (!mode) return { cents: null, status: 503, message: 'U.S. shipping rates are coming soon. Local pickup is available.' };
@@ -421,7 +489,7 @@ async function quoteShipping(items, zip, env, mode, clientIp) {
 
 async function checkoutSummary(env, params, preview, clientIp) {
   const listings = await shopListings(env.STORE_DB);
-  const finds = preview && !listings.length ? sampleFinds : listings.filter(item => item.status === 'published');
+  const finds = checkoutFinds(listings, preview);
   const available = new Map(finds.map(item => [item.id ?? item.image, item]));
   const ids = [...new Set((params.get('items') ?? '').split(',').filter(Boolean))];
   const items = ids.map(id => available.get(id)).filter(Boolean);
@@ -470,6 +538,12 @@ async function checkoutSummary(env, params, preview, clientIp) {
           <div><dt>${hasQuote ? shippingLabel : 'Local pickup'}</dt><dd>${currency.format(postage / 100)}</dd></div>
           <div class="price"><dt>Estimated total before tax</dt><dd>${currency.format((subtotal + postage) / 100)}</dd></div>
         </dl>
+        ${preview && sandboxReady(env) && items.length === 1 && !params.has('zip') ? `
+          <form action="/sandbox/checkout" method="post">
+            <input type="hidden" name="item" value="${escapeHtml(ids[0])}">
+            <input type="hidden" name="attempt" value="${crypto.randomUUID()}">
+            <button type="submit">Start Square Sandbox pickup test</button>
+          </form>` : ''}
       </section>
     </div>`, quote?.status ?? 200);
 }
@@ -511,6 +585,9 @@ export function createStore(isAdmin, { preview = false } = {}) {
       const adminRoute = path === '/manage' || path.startsWith('/manage/');
       const db = env.STORE_DB;
       try {
+        if (preview && sandboxReady(env) && (path === '/sandbox/checkout' || path.startsWith('/sandbox/checkout/'))) {
+          return await handleSandboxCheckout(request, env, url);
+        }
         if (adminRoute && !(await isAdmin(request, env))) {
           return page('Sign-in required', '<h1>Private shop editor.</h1><p>Sign in with the approved shop account to continue.</p>', 403);
         }
