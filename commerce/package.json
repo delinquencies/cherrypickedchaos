@@ -1,0 +1,15 @@
+{
+  "name": "cherry-picked-chaos-store",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:preview": "wrangler d1 migrations apply STORE_DB --local --config wrangler.preview.toml",
+    "preview": "wrangler dev --local --ip 127.0.0.1 --port 8004 --config wrangler.preview.toml"
+  },
+  "dependencies": {
+    "jose": "6.2.16"
+  },
+  "devDependencies": {
+    "wrangler": "4.158.0"
+  }
+}
