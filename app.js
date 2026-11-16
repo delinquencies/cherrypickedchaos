@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
       newsletter.scrollIntoView({behavior:'auto'});
       document.getElementById('newsletter-title')?.focus({preventScroll:true});
     }
-    if (location.hash === '#about' && document.body.classList.contains('landing-page') && !document.body.classList.contains('about-page')) location.replace('about.html');
+    if (location.hash === '#about' && document.body.classList.contains('landing-page') && !document.body.classList.contains('about-page')) location.replace('/about');
   }
   legacyLinks();
   window.addEventListener('hashchange', legacyLinks);
