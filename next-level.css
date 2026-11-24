@@ -205,3 +205,11 @@
   color: var(--cherry);
   font-weight: 800;
 }
+.opening-special{display:inline-block;margin:0 0 10px;padding:5px 9px;background:var(--olive);color:var(--paper);font-size:.65rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;border-radius:4px;transform:rotate(-1deg)}
+.opening-special[hidden],.holiday-offer[hidden]{display:none}
+.hero .holiday-offer{padding:12px 0 0;margin:12px 0 0;border-top:1px dashed #b86b76;color:var(--cherry);font-weight:900;font-size:.82rem;line-height:1.6;max-width:none}
+.opening-dates .date-ticket.bonus-day-ticket{--ticket-paper:#edf0c8;--ticket-ink:var(--olive);--ticket-stub:#dce2aa}
+.opening-dates .date-ticket.christmas-sale-ticket{--ticket-paper:#ffd6db;--ticket-ink:var(--cherry);--ticket-stub:#f7bec8}
+.ticket-bonus-note,.ticket-sale{margin:12px 0 0;font-size:.72rem;line-height:1.45}.ticket-sale strong{display:block;font-family:var(--serif);font-size:1.3rem;line-height:1.2}.christmas-sale-ticket .date-ticket-edition{border-bottom:1px dashed currentColor;padding-bottom:8px}
+
+/* Separate bonus-day and Christmas-sale callouts. */

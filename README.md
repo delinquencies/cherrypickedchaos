@@ -50,3 +50,6 @@ Browser checks cover widths 320, 390, 700, 800, 1000, 1050, 1280 and 1440; overf
 - estate.html: separate estate inquiry preview.
 
 The VIP drawer and standalone invitation were removed. Contact now prepares an email with an optional unchecked VIP opt-in. A message is optional only when VIP is requested; the visitor can send a normal message, request VIP only, or combine them. Sending still takes place in the visitor's email app. No automatic subscriptions or automatic email delivery. The old signup links continue to work by leading to Contact, without preselecting consent. The About Us page is linked across all public pages. Browser checks cover all four pages at 320, 390, 800, 1000 and 1280 pixels, mobile menus, contact/VIP consent paths, local navigation anchors and legacy redirects.
+
+## Christmas schedule update
+Bonus opening: Wednesday, December 9, 2026, 10 am–5 pm. The Christmas inventory sale is the separate December 18–19 weekend: 50% off Christmas inventory. Separate tickets and calendar downloads keep those dates distinct. The opening-card hours and countdown handle the single-day event and advance to the weekend after December 9 at 5 pm Texas time. Holiday hero promotion copy expires after December 19 at 5 pm. Tests cover countdown boundaries, the one-day versus two-day ICS files, sale expiry, and responsive ticket layouts.

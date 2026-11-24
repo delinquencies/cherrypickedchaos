@@ -51,6 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const state = window.CPC_SCHEDULE?.getState();
     if (!state) return;
     document.querySelectorAll('[data-opening-date]').forEach(el => el.textContent = state.dateLabel);
+    document.querySelectorAll('[data-opening-hours]').forEach(el => el.textContent = state.hoursLabel);
+    document.querySelectorAll('[data-opening-special]').forEach(el => { el.textContent = state.special; el.hidden = !state.special; });
+    document.querySelectorAll('[data-holiday-offer]').forEach(el => { el.textContent = state.holidayOffer; el.hidden = !state.holidayOffer; });
     document.querySelectorAll('[data-opening-countdown]').forEach(el => el.textContent = state.countdown);
     document.querySelectorAll('[data-next-calendar]').forEach(link => {
       link.hidden = !state.calendar;

@@ -1,32 +1,34 @@
 BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Cherry Picked Chaos//Retail Weekends//EN
+PRODID:-//Cherry Picked Chaos//Retail Openings//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 BEGIN:VEVENT
 UID:retail-20261218@cherrypickedchaos.com
-DTSTAMP:20261104T000000Z
+DTSTAMP:20261124T000000Z
+SEQUENCE:1
 DTSTART:20261218T160000Z
 DTEND:20261218T230000Z
-SUMMARY:Cherry Picked Chaos - Treasure Hunt Weekend
+SUMMARY:Cherry Picked Chaos - Christmas Inventory Sale
 LOCATION:621 Lyons Ave.\, Schulenburg\, TX 78956
-DESCRIPTION:Vintage and thrift shopping. Open 10 am-5 pm Texas time.
- Complimentary mimosas or coffee during retail hours. Call or text
- 713-446-4832 for appointments.
-URL:https://cherrypickedchaos.com
+DESCRIPTION:50% off Christmas inventory during the December 18 and 19 open
+ ing weekend. Open 10 am-5 pm Texas time. Complimentary mimosas or coffee d
+ uring retail hours.
+URL:https://www.cherrypickedchaos.com/
 TRANSP:TRANSPARENT
 END:VEVENT
 BEGIN:VEVENT
 UID:retail-20261219@cherrypickedchaos.com
-DTSTAMP:20261104T000000Z
+DTSTAMP:20261124T000000Z
+SEQUENCE:1
 DTSTART:20261219T160000Z
 DTEND:20261219T230000Z
-SUMMARY:Cherry Picked Chaos - Treasure Hunt Weekend
+SUMMARY:Cherry Picked Chaos - Christmas Inventory Sale
 LOCATION:621 Lyons Ave.\, Schulenburg\, TX 78956
-DESCRIPTION:Vintage and thrift shopping. Open 10 am-5 pm Texas time.
- Complimentary mimosas or coffee during retail hours. Call or text
- 713-446-4832 for appointments.
-URL:https://cherrypickedchaos.com
+DESCRIPTION:50% off Christmas inventory during the December 18 and 19 open
+ ing weekend. Open 10 am-5 pm Texas time. Complimentary mimosas or coffee d
+ uring retail hours.
+URL:https://www.cherrypickedchaos.com/
 TRANSP:TRANSPARENT
 END:VEVENT
 END:VCALENDAR
