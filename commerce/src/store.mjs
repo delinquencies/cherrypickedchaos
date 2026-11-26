@@ -144,7 +144,7 @@ function storefront(items, preview, ratesAvailable, live) {
     <article class="card" id="find-${id}" tabindex="-1" data-category="${item.category}">
       <div class="card-photo">
         <img src="${showSamples ? '/samples/' + item.image + '.webp' : '/photo/' + item.id + '?v=' + item.version}" alt="${escapeHtml(item.title)}" loading="lazy">
-        <span class="tag">${showSamples ? 'Sample listing' : item.status === 'sold' ? 'Sold' : 'One of a kind'}</span>
+        ${showSamples ? '<span class="tag">Sample listing</span>' : item.status === 'sold' ? '<span class="tag">Sold</span>' : ''}
       </div>
       <div class="card-body">
         <span class="category-tag">${escapeHtml(categories[item.category])}</span>
